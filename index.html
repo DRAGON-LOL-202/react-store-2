@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AtelierNova — Furniture Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, sans-serif; background: #FAF7F2; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    input[type="range"]::-webkit-slider-thumb { background: #B5562C; }
+    select:focus { outline: 2px solid #1C1B19; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #B5562C; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React + ReactDOM from CDN -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- Babel for JSX transpilation -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<script type="text/babel">
+const {
+  useState, useMemo, useEffect, useCallback,
+  createContext, useContext, useRef
+} = React;
+
+/* ── Lucide icon shim ── */
+function LucideIcon({ name, size = 16, color = 'currentColor', strokeWidth = 2, style, ...rest }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current && window.lucide) {
+      ref.current.innerHTML = '';
+      const icon = window.lucide.createElement(name);
+      if (icon) {
+        icon.setAttribute('width', size);
+        icon.setAttribute('height', size);
+        icon.setAttribute('stroke', color);
+        icon.setAttribute('stroke-width', strokeWidth);
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('stroke-linecap', 'round');
+        icon.setAttribute('stroke-linejoin', 'round');
+        ref.current.appendChild(icon);
+      }
+    }
+  }, [name, size, color, strokeWidth]);
+  return <span ref={ref} style={{ display:'inline-flex', alignItems:'center', ...style }} {...rest} />;
+}
+
+const Search = (p) => <LucideIcon name="search" {...p}/>;
+const ShoppingBag = (p) => <LucideIcon name="shopping-bag" {...p}/>;
+const X = (p) => <LucideIcon name="x" {...p}/>;
+const Plus = (p) => <LucideIcon name="plus" {...p}/>;
+const Minus = (p) => <LucideIcon name="minus" {...p}/>;
+const Star = ({ size=14, fill='none', stroke='currentColor', strokeWidth=1.5 }) => {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block',verticalAlign:'middle'}}>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  );
+};
+const ChevronDown = (p) => <LucideIcon name="chevron-down" {...p}/>;
+const ChevronRight = (p) => <LucideIcon name="chevron-right" {...p}/>;
+const ChevronLeft = (p) => <LucideIcon name="chevron-left" {...p}/>;
+const SlidersHorizontal = (p) => <LucideIcon name="sliders-horizontal" {...p}/>;
+const Heart = (p) => <LucideIcon name="heart" {...p}/>;
+const Check = (p) => <LucideIcon name="check" {...p}/>;
+const AlertCircle = (p) => <LucideIcon name="alert-circle" {...p}/>;
+const Package = (p) => <LucideIcon name="package" {...p}/>;
+const Truck = (p) => <LucideIcon name="truck" {...p}/>;
+const CreditCard = (p) => <LucideIcon name="credit-card" {...p}/>;
+const ArrowRight = (p) => <LucideIcon name="arrow-right" {...p}/>;
+const Filter = (p) => <LucideIcon name="filter" {...p}/>;
+const Trash2 = (p) => <LucideIcon name="trash-2" {...p}/>;
+const ShoppingCart = (p) => <LucideIcon name="shopping-cart" {...p}/>;
+const HomeIcon = (p) => <LucideIcon name="home" {...p}/>;
+
+/* ============================================================
+   INLINE PRODUCT IMAGES — pure SVG, no external URLs
+   ============================================================ */
+
+function seededRandom(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+/* Deterministic SVG "product photo" — each id gets a unique scene */
+function ProductImage({ id, className = '', alt = '' }) {
+  const rand = seededRandom(id * 31 + 7);
+  const hueA = Math.floor(rand() * 360);
+  const hueB = (hueA + 30 + Math.floor(rand() * 60)) % 360;
+  const sat = 18 + Math.floor(rand() * 12);
+  const sceneType = Math.floor(rand() * 6); // 0-5 different furniture silhouettes
+
+  const bg1 = `hsl(${hueA} ${sat}% 88%)`;
+  const bg2 = `hsl(${hueB} ${sat}% 78%)`;
+  const stroke = `hsl(${hueA} ${sat+10}% 30%)`;
+  const fill1 = `hsl(${hueA} ${sat+5}% 70%)`;
+  const fill2 = `hsl(${hueB} ${sat+5}% 60%)`;
+
+  const scenes = [
+    // Chair
+    <g key="chair">
+      <rect x="28" y="55" width="44" height="30" rx="3" fill={fill1} stroke={stroke} strokeWidth="2"/>
+      <rect x="24" y="40" width="52" height="18" rx="3" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <rect x="28" y="85" width="5" height="14" rx="2" fill={stroke}/>
+      <rect x="67" y="85" width="5" height="14" rx="2" fill={stroke}/>
+      <rect x="32" y="55" width="5" height="30" rx="2" fill={stroke}/>
+      <rect x="63" y="55" width="5" height="30" rx="2" fill={stroke}/>
+    </g>,
+    // Lamp
+    <g key="lamp">
+      <ellipse cx="50" cy="32" rx="24" ry="14" fill={fill1} stroke={stroke} strokeWidth="2"/>
+      <line x1="50" y1="46" x2="50" y2="82" stroke={stroke} strokeWidth="3"/>
+      <ellipse cx="50" cy="83" rx="16" ry="5" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <ellipse cx="50" cy="82" rx="10" ry="3" fill={stroke}/>
+    </g>,
+    // Table
+    <g key="table">
+      <rect x="14" y="44" width="72" height="10" rx="3" fill={fill1} stroke={stroke} strokeWidth="2"/>
+      <rect x="18" y="54" width="5" height="30" rx="2" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <rect x="77" y="54" width="5" height="30" rx="2" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <rect x="25" y="54" width="4" height="26" rx="2" fill={stroke} opacity="0.4"/>
+      <rect x="71" y="54" width="4" height="26" rx="2" fill={stroke} opacity="0.4"/>
+    </g>,
+    // Sofa
+    <g key="sofa">
+      <rect x="14" y="52" width="72" height="28" rx="5" fill={fill1} stroke={stroke} strokeWidth="2"/>
+      <rect x="14" y="38" width="16" height="42" rx="4" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <rect x="70" y="38" width="16" height="42" rx="4" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <rect x="14" y="75" width="72" height="7" rx="3" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <rect x="20" y="80" width="8" height="6" rx="2" fill={stroke}/>
+      <rect x="72" y="80" width="8" height="6" rx="2" fill={stroke}/>
+    </g>,
+    // Shelf / Storage
+    <g key="shelf">
+      <rect x="20" y="20" width="60" height="65" rx="3" fill="none" stroke={stroke} strokeWidth="2"/>
+      <rect x="20" y="38" width="60" height="3" fill={fill1} stroke={stroke} strokeWidth="1.5"/>
+      <rect x="20" y="55" width="60" height="3" fill={fill1} stroke={stroke} strokeWidth="1.5"/>
+      <rect x="20" y="72" width="60" height="3" fill={fill1} stroke={stroke} strokeWidth="1.5"/>
+      <circle cx="38" cy="30" r="5" fill={fill2} stroke={stroke} strokeWidth="1.5"/>
+      <rect x="55" y="24" width="14" height="14" rx="1" fill={fill2} stroke={stroke} strokeWidth="1.5"/>
+      <rect x="28" y="43" width="18" height="12" rx="1" fill={fill2} stroke={stroke} strokeWidth="1.5"/>
+      <circle cx="62" cy="63" r="7" fill={fill2} stroke={stroke} strokeWidth="1.5"/>
+    </g>,
+    // Vase / Decor
+    <g key="decor">
+      <path d="M38 85 Q30 60 34 40 Q38 22 50 20 Q62 22 66 40 Q70 60 62 85 Z" fill={fill1} stroke={stroke} strokeWidth="2"/>
+      <ellipse cx="50" cy="85" rx="13" ry="4" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <ellipse cx="50" cy="20" rx="10" ry="5" fill={fill2} stroke={stroke} strokeWidth="2"/>
+      <path d="M34 50 Q50 46 66 50" stroke={stroke} strokeWidth="1.5" fill="none" strokeDasharray="4 2"/>
+    </g>,
+  ];
+
+  const uniqueId = `grad-${id}`;
+
+  return (
+    <div
+      className={className}
+      role="img"
+      aria-label={alt}
+      style={{
+        background: `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <svg
+        width="55%"
+        height="55%"
+        viewBox="0 0 100 100"
+        style={{ opacity: 0.85 }}
+      >
+        <defs>
+          <linearGradient id={uniqueId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={fill1}/>
+            <stop offset="100%" stopColor={fill2}/>
+          </linearGradient>
+        </defs>
+        {scenes[sceneType]}
+      </svg>
+    </div>
+  );
+}
+
+/* ============================================================
+   MOCK DATA
+   ============================================================ */
+
+const CATEGORIES = [
+  { id: 'seating', name: 'Seating', count: 8, swatch: '#B5562C' },
+  { id: 'lighting', name: 'Lighting', count: 6, swatch: '#D9A05B' },
+  { id: 'tables', name: 'Tables', count: 5, swatch: '#6B7560' },
+  { id: 'storage', name: 'Storage', count: 5, swatch: '#8C6E54' },
+  { id: 'textiles', name: 'Textiles', count: 6, swatch: '#A4584A' },
+  { id: 'decor', name: 'Decor', count: 6, swatch: '#3D4A3D' },
+];
+
+const PRODUCT_NAMES = {
+  seating: ['Hollow Lounge Chair','Marrow Armchair','Bend Dining Chair','Fjord Sofa','Stack Stool','Linden Bench','Cradle Recliner','Petal Accent Chair'],
+  lighting: ['Halo Pendant','Drift Floor Lamp','Knoll Table Lamp','Arc Wall Sconce','Orbit Chandelier','Glow Reading Lamp'],
+  tables: ['Mesa Dining Table','Tide Coffee Table','Frame Console','Loop Side Table','Plinth Desk'],
+  storage: ['Cairn Bookshelf','Vault Sideboard','Niche Cabinet','Crate Trunk','Lattice Shoe Rack'],
+  textiles: ['Heather Throw Blanket','Dune Area Rug','Linen Cushion Set','Wool Pouf','Marsh Table Runner','Cloud Bedspread'],
+  decor: ['Terra Vase Trio','Quartz Bookends','Aura Mirror','Husk Candle Holder','Reed Wall Art','Stone Tray Set'],
+};
+
+const ADJECTIVES = ['Oat','Clay','Moss','Stone','Walnut','Linen','Smoke','Sand','Rust','Ash'];
+
+function buildProducts() {
+  const products = [];
+  let id = 1;
+  Object.entries(PRODUCT_NAMES).forEach(([catId, names]) => {
+    names.forEach((name) => {
+      const rand = seededRandom(id * 7 + 13);
+      const basePrice = Math.round((40 + rand() * 460) / 5) * 5;
+      const hasDiscount = rand() > 0.65;
+      const price = hasDiscount ? Math.round(basePrice * (0.7 + rand() * 0.15)) : basePrice;
+      const rating = Math.round((3.2 + rand() * 1.8) * 10) / 10;
+      const reviewCount = Math.floor(20 + rand() * 480);
+      const inStock = rand() > 0.12;
+      const isNew = rand() > 0.75;
+      const daysAgo = Math.floor(rand() * 200);
+      const colorPool = ADJECTIVES.slice(0, 3 + Math.floor(rand() * 3));
+      const hasSizes = ['seating','textiles','tables'].includes(catId);
+      products.push({
+        id, name, category: catId, price,
+        originalPrice: hasDiscount ? basePrice : null,
+        rating, reviewCount, inStock, isNew, addedDaysAgo: daysAgo,
+        colors: colorPool,
+        sizes: hasSizes ? ['S','M','L'] : null,
+        description: `The ${name} brings a considered, tactile presence to any room. Crafted from sustainably sourced materials with close attention to grain, weight, and finish, it pairs a quiet silhouette with details that reward a second look — designed to soften with use and age well over years, not seasons.`,
+        details: [
+          'Solid hardwood frame with hand-finished joinery',
+          'Removable, machine-washable covers where applicable',
+          'Ships flat-packed with tool-free assembly',
+          '1-year workmanship warranty',
+        ],
+        images: [id, id + 1000, id + 2000],
+      });
+      id++;
+    });
+  });
+  return products;
+}
+
+const PRODUCTS = buildProducts();
+
+const COLOR_HEX = {
+  Oat:'#E4DCC9', Clay:'#C9886A', Moss:'#6B7560', Stone:'#A8A297',
+  Walnut:'#6B4A33', Linen:'#EDE7DA', Smoke:'#8B8B86', Sand:'#D8C6A8',
+  Rust:'#B5562C', Ash:'#B8B5AE',
+};
+
+/* ============================================================
+   CART CONTEXT
+   ============================================================ */
+
+const CartContext = createContext(null);
+const useCart = () => useContext(CartContext);
+
+const TAX_RATE = 0.08;
+const FREE_SHIPPING_THRESHOLD = 200;
+const SHIPPING_FLAT = 12;
+
+function CartProvider({ children }) {
+  const [items, setItems] = useState([]);
+  const [toast, setToast] = useState(null);
+
+  const showToast = useCallback((message) => {
+    setToast({ message, id: Date.now() });
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const addItem = useCallback((product, options = {}) => {
+    const { color, size, quantity = 1 } = options;
+    setItems((prev) => {
+      const lineId = `${product.id}-${color || 'default'}-${size || 'default'}`;
+      const existing = prev.find((i) => i.lineId === lineId);
+      if (existing) {
+        return prev.map((i) => i.lineId === lineId ? { ...i, quantity: i.quantity + quantity } : i);
+      }
+      return [...prev, { lineId, productId: product.id, name: product.name, price: product.price, category: product.category, color: color || null, size: size || null, quantity }];
+    });
+    showToast(`Added ${product.name} to your cart`);
+  }, [showToast]);
+
+  const removeItem = useCallback((lineId) => setItems((prev) => prev.filter((i) => i.lineId !== lineId)), []);
+  const updateQuantity = useCallback((lineId, quantity) => {
+    setItems((prev) => {
+      if (quantity <= 0) return prev.filter((i) => i.lineId !== lineId);
+      return prev.map((i) => (i.lineId === lineId ? { ...i, quantity } : i));
+    });
+  }, []);
+  const clearCart = useCallback(() => setItems([]), []);
+
+  const subtotal = useMemo(() => items.reduce((sum, i) => sum + i.price * i.quantity, 0), [items]);
+  const itemCount = useMemo(() => items.reduce((sum, i) => sum + i.quantity, 0), [items]);
+
+  return (
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, subtotal, itemCount, toast, showToast }}>
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+/* ============================================================
+   SHARED UI PRIMITIVES
+   ============================================================ */
+
+function StarRating({ rating, size = 14, showNumber = true }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+      <div style={{ display:'flex', gap:1 }}>
+        {[1,2,3,4,5].map((n) => (
+          <Star key={n} size={size}
+            fill={n <= Math.round(rating) ? '#B5562C' : 'none'}
+            stroke={n <= Math.round(rating) ? '#B5562C' : '#C9C2B6'}
+            strokeWidth={1.5}
+          />
+        ))}
+      </div>
+      {showNumber && <span style={{ fontSize:12.5, color:'#8C8579' }}>{rating.toFixed(1)}</span>}
+    </div>
+  );
+}
+
+function Price({ price, originalPrice, size = 'md' }) {
+  const sizes = { sm:14, md:16, lg:24, xl:32 };
+  return (
+    <div style={{ display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap' }}>
+      <span style={{ fontSize:sizes[size], fontWeight:600, color:'#1C1B19' }}>${price.toLocaleString()}</span>
+      {originalPrice && (
+        <span style={{ fontSize:sizes[size]*0.7, color:'#B0A99C', textDecoration:'line-through' }}>
+          ${originalPrice.toLocaleString()}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Badge({ children, tone = 'default' }) {
+  const tones = {
+    default:{ bg:'#EDE7DA', color:'#6B5D4F' },
+    sale:{ bg:'#B5562C', color:'#FFF' },
+    new:{ bg:'#3D4A3D', color:'#FFF' },
+    out:{ bg:'#F2EDE4', color:'#A39B8C' },
+  };
+  const t = tones[tone];
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', padding:'4px 9px',
+      fontSize:11, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase',
+      borderRadius:4, background:t.bg, color:t.color,
+    }}>
+      {children}
+    </span>
+  );
+}
+
+function Button({ children, variant='primary', size='md', onClick, disabled, style, type='button', full }) {
+  const base = {
+    fontWeight:600, borderRadius:6, border:'1.5px solid transparent',
+    cursor:disabled ? 'not-allowed' : 'pointer', transition:'all 0.18s ease',
+    display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
+    opacity:disabled ? 0.5 : 1, width:full ? '100%' : 'auto', letterSpacing:'0.01em',
+  };
+  const sizes = {
+    sm:{ padding:'8px 14px', fontSize:13 },
+    md:{ padding:'12px 22px', fontSize:14.5 },
+    lg:{ padding:'15px 30px', fontSize:15.5 },
+  };
+  const variants = {
+    primary:{ background:'#1C1B19', color:'#FAF7F2', borderColor:'#1C1B19' },
+    accent:{ background:'#B5562C', color:'#FFF', borderColor:'#B5562C' },
+    secondary:{ background:'transparent', color:'#1C1B19', borderColor:'#1C1B19' },
+    ghost:{ background:'transparent', color:'#6B5D4F', borderColor:'transparent' },
+    light:{ background:'#FFFFFF', color:'#1C1B19', borderColor:'#E4DCC9' },
+  };
+  return (
+    <button type={type} onClick={disabled ? undefined : onClick}
+      onMouseEnter={(e) => {
+        if (disabled) return;
+        if (variant==='primary') e.currentTarget.style.background='#3D3936';
+        if (variant==='accent') e.currentTarget.style.background='#9A4A26';
+        if (variant==='secondary') { e.currentTarget.style.background='#1C1B19'; e.currentTarget.style.color='#FAF7F2'; }
+      }}
+      onMouseLeave={(e) => {
+        if (disabled) return;
+        if (variant==='primary') e.currentTarget.style.background='#1C1B19';
+        if (variant==='accent') e.currentTarget.style.background='#B5562C';
+        if (variant==='secondary') { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#1C1B19'; }
+      }}
+      style={{ ...base, ...sizes[size], ...variants[variant], ...style }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Skeleton({ width='100%', height=16, radius=4, style }) {
+  return (
+    <div style={{
+      width, height, borderRadius:radius,
+      background:'linear-gradient(90deg,#EDE7DA 25%,#F5F0E6 50%,#EDE7DA 75%)',
+      backgroundSize:'200% 100%', animation:'shimmer 1.5s infinite', ...style,
+    }} />
+  );
+}
+
+function EmptyState({ icon: Icon, title, message, action }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'64px 24px', textAlign:'center', gap:14 }}>
+      <div style={{ width:64, height:64, borderRadius:'50%', background:'#EDE7DA', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:6 }}>
+        <Icon size={28} color="#A39B8C"/>
+      </div>
+      <h3 style={{ fontFamily:'Fraunces, serif', fontSize:22, fontWeight:600, color:'#1C1B19', margin:0 }}>{title}</h3>
+      <p style={{ fontSize:14.5, color:'#8C8579', maxWidth:360, margin:0, lineHeight:1.6 }}>{message}</p>
+      {action}
+    </div>
+  );
+}
+
+/* ============================================================
+   PRODUCT CARD
+   ============================================================ */
+
+function ProductCard({ product, onNavigate }) {
+  const { addItem } = useCart();
+  const [hovered, setHovered] = useState(false);
+  const discount = product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : null;
+
+  const handleAdd = (e) => {
+    e.stopPropagation();
+    addItem(product, { color: product.colors?.[0], size: product.sizes?.[1] });
+  };
+
+  return (
+    <div
+      onClick={() => onNavigate('product', product.id)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        borderRadius:10, overflow:'hidden', background:'#FFFFFF',
+        border:'1px solid #EFE9DD', cursor:'pointer',
+        transition:'box-shadow 0.25s ease, transform 0.25s ease',
+        boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.1)' : 'none',
+        transform: hovered ? 'translateY(-3px)' : 'none',
+      }}
+    >
+      <div style={{ position:'relative', aspectRatio:'1/1', overflow:'hidden' }}>
+        <ProductImage id={product.id} alt={product.name} className="prod-img" />
+        <style>{`.prod-img { width:100%; height:100%; }`}</style>
+        <div style={{ position:'absolute', top:10, left:10, display:'flex', flexDirection:'column', gap:4 }}>
+          {discount && <Badge tone="sale">−{discount}%</Badge>}
+          {product.isNew && <Badge tone="new">New</Badge>}
+          {!product.inStock && <Badge tone="out">Sold out</Badge>}
+        </div>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Save to wishlist"
+          style={{
+            position:'absolute', top:10, right:10, width:32, height:32, borderRadius:'50%',
+            border:'none', background:'rgba(255,255,255,0.9)', display:'flex', alignItems:'center',
+            justifyContent:'center', cursor:'pointer', opacity: hovered ? 1 : 0, transition:'opacity 0.2s ease',
+          }}
+        >
+          <Heart size={15} color="#1C1B19"/>
+        </button>
+        <div style={{
+          position:'absolute', bottom:0, left:0, right:0, padding:10,
+          transform: hovered ? 'translateY(0)' : 'translateY(110%)',
+          transition:'transform 0.25s ease',
+        }}>
+          <Button variant="primary" size="sm" full disabled={!product.inStock} onClick={handleAdd}>
+            <ShoppingBag size={14}/>
+            {product.inStock ? 'Add to cart' : 'Unavailable'}
+          </Button>
+        </div>
+      </div>
+      <div style={{ padding:'14px 14px 16px' }}>
+        <div style={{ fontSize:11.5, color:'#A39B8C', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>
+          {CATEGORIES.find((c) => c.id === product.category)?.name}
+        </div>
+        <h3 style={{ fontFamily:'Fraunces, serif', fontSize:16.5, fontWeight:600, color:'#1C1B19', margin:'0 0 6px', lineHeight:1.3 }}>
+          {product.name}
+        </h3>
+        <div style={{ marginBottom:8 }}><StarRating rating={product.rating}/></div>
+        <Price price={product.price} originalPrice={product.originalPrice}/>
+      </div>
+    </div>
+  );
+}
+
+function ProductCardSkeleton() {
+  return (
+    <div style={{ borderRadius:10, overflow:'hidden', background:'#FFFFFF', border:'1px solid #EFE9DD' }}>
+      <Skeleton height={0} style={{ paddingBottom:'100%' }} radius={0}/>
+      <div style={{ padding:14 }}>
+        <Skeleton width="40%" height={11} style={{ marginBottom:8 }}/>
+        <Skeleton width="80%" height={18} style={{ marginBottom:10 }}/>
+        <Skeleton width="55%" height={13} style={{ marginBottom:10 }}/>
+        <Skeleton width="35%" height={18}/>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+function Header({ onNavigate, currentPage, searchQuery, setSearchQuery, onOpenCart }) {
+  const { itemCount } = useCart();
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <header style={{ position:'sticky', top:0, zIndex:40, background:'#FAF7F2', borderBottom:'1px solid #EFE9DD' }}>
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 24px' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:72, gap:24 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:32 }}>
+            <button onClick={() => onNavigate('home')} style={{ fontFamily:'Fraunces, serif', fontSize:24, fontWeight:700, color:'#1C1B19', background:'none', border:'none', cursor:'pointer', padding:0 }}>
+              Atelier<span style={{ color:'#B5562C' }}>Nova</span>
+            </button>
+            <nav style={{ display:'flex', gap:24 }} className="desktop-nav">
+              {[{ id:'home', label:'Home' }, { id:'products', label:'Shop all' }].map((l) => (
+                <button key={l.id} onClick={() => onNavigate(l.id)} style={{
+                  fontSize:14.5, fontWeight:500,
+                  color: currentPage === l.id ? '#1C1B19' : '#8C8579',
+                  background:'none', border:'none', cursor:'pointer', padding:'4px 0',
+                  borderBottom: currentPage === l.id ? '2px solid #B5562C' : '2px solid transparent',
+                }}>
+                  {l.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div style={{ flex:1, maxWidth:420, display:'flex', alignItems:'center' }} className="search-wrap">
+            <div style={{
+              display:'flex', alignItems:'center', width:'100%', gap:10,
+              background:'#FFFFFF', border:`1.5px solid ${searchFocused ? '#1C1B19' : '#EFE9DD'}`,
+              borderRadius:8, padding:'9px 14px', transition:'border-color 0.15s ease',
+            }}>
+              <Search size={16} color="#A39B8C"/>
+              <input
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); if (currentPage !== 'products') onNavigate('products'); }}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                placeholder="Search chairs, lamps, rugs…"
+                style={{ border:'none', outline:'none', fontSize:14, width:'100%', background:'transparent', color:'#1C1B19' }}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} style={{ background:'none', border:'none', cursor:'pointer', display:'flex' }}>
+                  <X size={14} color="#A39B8C"/>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <button
+              onClick={onOpenCart}
+              style={{
+                position:'relative', width:42, height:42, borderRadius:8, border:'1.5px solid #EFE9DD',
+                background:'#FFFFFF', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor='#1C1B19'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor='#EFE9DD'}
+            >
+              <ShoppingBag size={18} color="#1C1B19"/>
+              {itemCount > 0 && (
+                <span style={{
+                  position:'absolute', top:-6, right:-6, minWidth:20, height:20, borderRadius:10,
+                  background:'#B5562C', color:'#FFF', fontSize:11, fontWeight:700,
+                  display:'flex', alignItems:'center', justifyContent:'center', padding:'0 5px',
+                }}>
+                  {itemCount}
+                </span>
+              )}
+            </button>
+            <button
+              className="mobile-menu-btn"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              style={{ display:'none', width:42, height:42, borderRadius:8, border:'1.5px solid #EFE9DD', background:'#FFFFFF', cursor:'pointer', alignItems:'center', justifyContent:'center' }}
+            >
+              <SlidersHorizontal size={17} color="#1C1B19"/>
+            </button>
+          </div>
+        </div>
+      </div>
+      {mobileMenuOpen && (
+        <div style={{ borderTop:'1px solid #EFE9DD', padding:'12px 24px', display:'flex', flexDirection:'column', gap:10 }}>
+          {[{ id:'home', label:'Home' }, { id:'products', label:'Shop all' }].map((l) => (
+            <button key={l.id} onClick={() => { onNavigate(l.id); setMobileMenuOpen(false); }}
+              style={{ textAlign:'left', fontSize:15, fontWeight:500, color:'#1C1B19', background:'none', border:'none', cursor:'pointer', padding:'8px 0' }}>
+              {l.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <style>{`
+        @media (max-width:860px) {
+          .desktop-nav { display:none !important; }
+          .search-wrap { max-width:none !important; flex:1; }
+          .mobile-menu-btn { display:flex !important; }
+        }
+      `}</style>
+    </header>
+  );
+}
+
+/* ============================================================
+   CART DRAWER
+   ============================================================ */
+
+function CartDrawer({ open, onClose, onNavigate }) {
+  const { items, removeItem, updateQuantity, subtotal } = useCart();
+  const shipping = items.length === 0 ? 0 : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT);
+  const tax = subtotal * TAX_RATE;
+  const total = subtotal + shipping + tax;
+
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position:'fixed', inset:0, background:'rgba(28,27,25,0.35)', zIndex:50,
+        opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transition:'opacity 0.25s ease',
+      }} />
+      <div style={{
+        position:'fixed', top:0, right:0, height:'100vh', width:'min(440px,100vw)',
+        background:'#FAF7F2', zIndex:51, display:'flex', flexDirection:'column',
+        transform: open ? 'translateX(0)' : 'translateX(100%)',
+        transition:'transform 0.3s cubic-bezier(0.32,0.72,0,1)',
+        boxShadow:'-8px 0 30px rgba(0,0,0,0.08)',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'22px 24px', borderBottom:'1px solid #EFE9DD' }}>
+          <h2 style={{ fontFamily:'Fraunces, serif', fontSize:21, fontWeight:700, margin:0, color:'#1C1B19' }}>
+            Your cart {items.length > 0 && <span style={{ color:'#A39B8C', fontSize:15, fontWeight:500 }}>({items.length})</span>}
+          </h2>
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', padding:4 }}>
+            <X size={20} color="#1C1B19"/>
+          </button>
+        </div>
+
+        {items.length === 0 ? (
+          <div style={{ flex:1, display:'flex', alignItems:'center' }}>
+            <EmptyState icon={ShoppingBag} title="Your cart is empty"
+              message="Items you add will show up here. Start browsing to find something you'll love."
+              action={<Button variant="primary" onClick={() => { onClose(); onNavigate('products'); }}>Browse products</Button>}
+            />
+          </div>
+        ) : (
+          <>
+            <div style={{ flex:1, overflowY:'auto', padding:'8px 24px' }}>
+              {items.map((item) => (
+                <CartLineItem key={item.lineId} item={item}
+                  onRemove={() => removeItem(item.lineId)}
+                  onUpdateQty={(q) => updateQuantity(item.lineId, q)}
+                />
+              ))}
+            </div>
+            <div style={{ borderTop:'1px solid #EFE9DD', padding:'20px 24px', background:'#FFFFFF' }}>
+              <SummaryRow label="Subtotal" value={subtotal}/>
+              <SummaryRow label="Shipping" value={shipping} freeLabel={shipping === 0}/>
+              <SummaryRow label="Estimated tax" value={tax}/>
+              {subtotal > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
+                <div style={{ fontSize:12.5, color:'#6B5D4F', background:'#F2EDE4', borderRadius:6, padding:'8px 10px', margin:'8px 0' }}>
+                  Add ${(FREE_SHIPPING_THRESHOLD - subtotal).toFixed(2)} more for free shipping
+                </div>
+              )}
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', margin:'14px 0 18px', paddingTop:12, borderTop:'1px solid #EFE9DD' }}>
+                <span style={{ fontSize:15, fontWeight:600, color:'#1C1B19' }}>Total</span>
+                <span style={{ fontFamily:'Fraunces, serif', fontSize:24, fontWeight:700, color:'#1C1B19' }}>${total.toFixed(2)}</span>
+              </div>
+              <Button variant="accent" full size="lg" onClick={() => { onClose(); onNavigate('checkout'); }}>
+                Continue to checkout <ArrowRight size={16}/>
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+function SummaryRow({ label, value, freeLabel }) {
+  return (
+    <div style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', fontSize:13.5, color:'#6B5D4F' }}>
+      <span>{label}</span>
+      <span style={{ color: freeLabel ? '#3D4A3D' : '#1C1B19', fontWeight: freeLabel ? 600 : 500 }}>
+        {freeLabel ? 'Free' : `$${value.toFixed(2)}`}
+      </span>
+    </div>
+  );
+}
+
+function CartLineItem({ item, onRemove, onUpdateQty }) {
+  return (
+    <div style={{ display:'flex', gap:14, padding:'16px 0', borderBottom:'1px solid #F2EDE4' }}>
+      <div style={{ width:76, height:76, borderRadius:8, flexShrink:0, overflow:'hidden' }}>
+        <ProductImage id={item.productId} alt={item.name} className="cart-img"/>
+        <style>{`.cart-img { width:100%; height:100%; }`}</style>
+      </div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
+          <h4 style={{ fontFamily:'Fraunces, serif', fontSize:15, fontWeight:600, color:'#1C1B19', margin:0, lineHeight:1.3 }}>{item.name}</h4>
+          <button onClick={onRemove} style={{ background:'none', border:'none', cursor:'pointer', padding:2, flexShrink:0 }}>
+            <Trash2 size={15} color="#A39B8C"/>
+          </button>
+        </div>
+        <div style={{ fontSize:12.5, color:'#A39B8C', margin:'3px 0 8px' }}>
+          {item.color && `${item.color}`}{item.color && item.size && ' · '}{item.size && `Size ${item.size}`}
+        </div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', border:'1px solid #EFE9DD', borderRadius:6 }}>
+            <button onClick={() => onUpdateQty(item.quantity - 1)} style={{ width:28, height:28, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Minus size={13} color="#1C1B19"/>
+            </button>
+            <span style={{ width:28, textAlign:'center', fontSize:13.5, fontWeight:600 }}>{item.quantity}</span>
+            <button onClick={() => onUpdateQty(item.quantity + 1)} style={{ width:28, height:28, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Plus size={13} color="#1C1B19"/>
+            </button>
+          </div>
+          <span style={{ fontSize:14.5, fontWeight:600, color:'#1C1B19' }}>${(item.price * item.quantity).toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Toast({ toast }) {
+  return (
+    <div style={{
+      position:'fixed', bottom:24, left:'50%', zIndex:60,
+      transform:`translateX(-50%) translateY(${toast ? '0' : '20px'})`,
+      opacity: toast ? 1 : 0, transition:'all 0.25s ease', pointerEvents:'none',
+    }}>
+      {toast && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, background:'#1C1B19', color:'#FAF7F2', padding:'12px 20px', borderRadius:8, fontSize:14, boxShadow:'0 8px 24px rgba(0,0,0,0.2)', fontWeight:500 }}>
+          <div style={{ width:18, height:18, borderRadius:'50%', background:'#3D4A3D', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <Check size={11} color="#FFF"/>
+          </div>
+          {toast.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   HOME PAGE
+   ============================================================ */
+
+function HomePage({ onNavigate, setSelectedCategory }) {
+  const featured = PRODUCTS.filter((p) => p.isNew).slice(0, 4);
+  const onSale = PRODUCTS.filter((p) => p.originalPrice).slice(0, 4);
+
+  return (
+    <div>
+      {/* HERO */}
+      <section style={{ background:'#3D4A3D', position:'relative', overflow:'hidden' }}>
+        <div style={{ maxWidth:1320, margin:'0 auto', padding:'90px 24px 100px', display:'grid', gridTemplateColumns:'1.1fr 1fr', gap:48, alignItems:'center' }} className="hero-grid">
+          <div>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:8, marginBottom:22 }}>
+              <div style={{ width:32, height:1, background:'#D9A05B' }}/>
+              <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#D9A05B', fontWeight:600 }}>Autumn Collection</span>
+            </div>
+            <h1 style={{ fontFamily:'Fraunces, serif', fontSize:'clamp(40px,6vw,68px)', fontWeight:700, color:'#FAF7F2', lineHeight:1.08, margin:'0 0 22px' }}>
+              Furniture that feels like it's already yours
+            </h1>
+            <p style={{ fontSize:17, color:'#C8D0C6', lineHeight:1.7, maxWidth:460, margin:'0 0 36px' }}>
+              Hand-finished seating, lighting and storage made from materials that age gracefully — designed for rooms you actually live in.
+            </p>
+            <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
+              <Button variant="accent" size="lg" onClick={() => onNavigate('products')}>
+                Shop the collection <ArrowRight size={16}/>
+              </Button>
+              <Button variant="light" size="lg" onClick={() => onNavigate('products')}>Explore categories</Button>
+            </div>
+          </div>
+          <div style={{ position:'relative' }} className="hero-image-wrap">
+            <div style={{ borderRadius:16, overflow:'hidden', aspectRatio:'4/5', boxShadow:'0 30px 60px -20px rgba(0,0,0,0.4)' }}>
+              <ProductImage id={3} alt="Featured living room" className="hero-img-fill"/>
+              <style>{`.hero-img-fill { width:100%; height:100%; }`}</style>
+            </div>
+            <div style={{
+              position:'absolute', bottom:-24, left:-24, background:'#FAF7F2', borderRadius:12,
+              padding:'16px 20px', boxShadow:'0 12px 30px rgba(0,0,0,0.18)', display:'flex', alignItems:'center', gap:12,
+            }} className="hero-badge">
+              <StarRating rating={4.8} size={15}/>
+              <div style={{ width:1, height:28, background:'#EFE9DD' }}/>
+              <span style={{ fontSize:13, color:'#6B5D4F', fontWeight:500 }}>2,400+ reviews</span>
+            </div>
+          </div>
+        </div>
+        <style>{`
+          @media (max-width:900px) {
+            .hero-grid { grid-template-columns:1fr !important; padding:60px 24px 70px !important; }
+            .hero-image-wrap { order:-1; }
+            .hero-badge { display:none !important; }
+          }
+        `}</style>
+      </section>
+
+      {/* CATEGORIES */}
+      <section style={{ maxWidth:1320, margin:'0 auto', padding:'72px 24px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:32, flexWrap:'wrap', gap:12 }}>
+          <div>
+            <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Browse by room</span>
+            <h2 style={{ fontFamily:'Fraunces, serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>Shop by category</h2>
+          </div>
+          <button onClick={() => onNavigate('products')} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', fontSize:14, fontWeight:600, color:'#1C1B19' }}>
+            View all products <ArrowRight size={15}/>
+          </button>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:16 }} className="category-grid">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => { setSelectedCategory(cat.id); onNavigate('products'); }}
+              style={{ border:'none', cursor:'pointer', borderRadius:12, overflow:'hidden', position:'relative', aspectRatio:'3/4', display:'flex', alignItems:'flex-end', padding:0, transition:'transform 0.25s ease' }}
+              onMouseEnter={(e) => e.currentTarget.style.transform='translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform='translateY(0)'}
+            >
+              <div style={{ position:'absolute', inset:0, background:cat.swatch, opacity:0.85 }}/>
+              <ProductImage id={cat.id.length * 17} alt={cat.name} className="cat-img"/>
+              <style>{`.cat-img { position:absolute; inset:0; width:100%; height:100%; mix-blend-mode:multiply; opacity:0.5; }`}</style>
+              <div style={{ position:'relative', padding:14, textAlign:'left', width:'100%' }}>
+                <div style={{ fontFamily:'Fraunces, serif', fontSize:17, fontWeight:700, color:'#FAF7F2', marginBottom:2 }}>{cat.name}</div>
+                <div style={{ fontSize:12, color:'rgba(250,247,242,0.85)' }}>{cat.count} items</div>
+              </div>
+            </button>
+          ))}
+        </div>
+        <style>{`
+          @media (max-width:1000px) { .category-grid { grid-template-columns:repeat(3,1fr) !important; } }
+          @media (max-width:600px) { .category-grid { grid-template-columns:repeat(2,1fr) !important; } }
+        `}</style>
+      </section>
+
+      {/* FEATURED */}
+      <section style={{ maxWidth:1320, margin:'0 auto', padding:'0 24px 72px' }}>
+        <div style={{ marginBottom:32 }}>
+          <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Just landed</span>
+          <h2 style={{ fontFamily:'Fraunces, serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>New arrivals</h2>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:20 }} className="product-grid-4">
+          {featured.map((p) => <ProductCard key={p.id} product={p} onNavigate={onNavigate}/>)}
+        </div>
+      </section>
+
+      {/* PROMO BANNER */}
+      <section style={{ maxWidth:1320, margin:'0 auto', padding:'0 24px 72px' }}>
+        <div style={{ background:'#EDE7DA', borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'1fr 1fr', alignItems:'stretch' }} className="promo-grid">
+          <div style={{ padding:'56px 56px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+            <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600, marginBottom:12 }}>Limited time</span>
+            <h3 style={{ fontFamily:'Fraunces, serif', fontSize:34, fontWeight:700, color:'#1C1B19', margin:'0 0 14px', lineHeight:1.2 }}>
+              Up to 30% off select lighting & textiles
+            </h3>
+            <p style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.7, margin:'0 0 28px', maxWidth:380 }}>
+              Refresh your space for less. Sale ends when our current stock runs out — first come, first served.
+            </p>
+            <div><Button variant="primary" size="lg" onClick={() => onNavigate('products')}>Shop the sale</Button></div>
+          </div>
+          <div style={{ minHeight:280 }}>
+            <ProductImage id={555} alt="Sale items" className="promo-img"/>
+            <style>{`.promo-img { width:100%; height:100%; }`}</style>
+          </div>
+        </div>
+        <style>{`@media (max-width:800px) { .promo-grid { grid-template-columns:1fr !important; } .promo-grid > div:first-child { padding:40px 28px !important; } }`}</style>
+      </section>
+
+      {/* ON SALE */}
+      <section style={{ maxWidth:1320, margin:'0 auto', padding:'0 24px 90px' }}>
+        <div style={{ marginBottom:32 }}>
+          <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Don't miss out</span>
+          <h2 style={{ fontFamily:'Fraunces, serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>Current offers</h2>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:20 }} className="product-grid-4">
+          {onSale.map((p) => <ProductCard key={p.id} product={p} onNavigate={onNavigate}/>)}
+        </div>
+      </section>
+
+      <style>{`
+        @media (max-width:1000px) { .product-grid-4 { grid-template-columns:repeat(2,1fr) !important; } }
+        @media (max-width:560px) { .product-grid-4 { grid-template-columns:1fr !important; } }
+      `}</style>
+    </div>
+  );
+}
+
+/* ============================================================
+   PRODUCTS PAGE
+   ============================================================ */
+
+const SORT_OPTIONS = [
+  { id:'newest', label:'Newest' },
+  { id:'price-asc', label:'Price: low to high' },
+  { id:'price-desc', label:'Price: high to low' },
+  { id:'rating-desc', label:'Highest rated' },
+];
+
+function FilterSection({ title, children, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ borderBottom:'1px solid #EFE9DD', paddingBottom:18, marginBottom:18 }}>
+      <button onClick={() => setOpen((v) => !v)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', background:'none', border:'none', cursor:'pointer', padding:'0 0 12px', fontSize:14, fontWeight:600, color:'#1C1B19' }}>
+        {title}
+        <ChevronDown size={16} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition:'transform 0.2s ease' }}/>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+function CheckboxRow({ label, checked, onChange, count }) {
+  return (
+    <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 0', cursor:'pointer', fontSize:13.5 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${checked ? '#1C1B19' : '#D9D2C4'}`, background: checked ? '#1C1B19' : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s ease', flexShrink:0 }}>
+          {checked && <Check size={11} color="#FAF7F2"/>}
+        </div>
+        <span style={{ color:'#3D3936' }}>{label}</span>
+      </div>
+      {count !== undefined && <span style={{ color:'#A39B8C', fontSize:12 }}>{count}</span>}
+      <input type="checkbox" checked={checked} onChange={onChange} style={{ display:'none' }}/>
+    </label>
+  );
+}
+
+function FilterPanel({ filters, setFilters, productCounts, maxPrice }) {
+  const toggleCategory = (catId) => {
+    setFilters((f) => ({
+      ...f,
+      categories: f.categories.includes(catId)
+        ? f.categories.filter((c) => c !== catId)
+        : [...f.categories, catId],
+    }));
+  };
+
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+        <h3 style={{ fontFamily:'Fraunces, serif', fontSize:19, fontWeight:700, margin:0, color:'#1C1B19' }}>Filters</h3>
+        <button onClick={() => setFilters({ categories:[], maxPrice, minRating:0, inStockOnly:false })}
+          style={{ background:'none', border:'none', cursor:'pointer', fontSize:12.5, color:'#B5562C', fontWeight:600 }}>
+          Clear all
+        </button>
+      </div>
+      <FilterSection title="Category">
+        {CATEGORIES.map((cat) => (
+          <CheckboxRow key={cat.id} label={cat.name} count={productCounts[cat.id] || 0}
+            checked={filters.categories.includes(cat.id)} onChange={() => toggleCategory(cat.id)}/>
+        ))}
+      </FilterSection>
+      <FilterSection title="Price">
+        <div style={{ padding:'4px 0' }}>
+          <input type="range" min={0} max={maxPrice} step={5} value={filters.maxPrice}
+            onChange={(e) => setFilters((f) => ({ ...f, maxPrice:Number(e.target.value) }))}
+            style={{ width:'100%', accentColor:'#B5562C' }}
+          />
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, color:'#6B5D4F', marginTop:6 }}>
+            <span>$0</span>
+            <span style={{ fontWeight:600, color:'#1C1B19' }}>Up to ${filters.maxPrice}</span>
+          </div>
+        </div>
+      </FilterSection>
+      <FilterSection title="Rating">
+        {[4,3,2].map((r) => (
+          <label key={r} onClick={() => setFilters((f) => ({ ...f, minRating: f.minRating === r ? 0 : r }))}
+            style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 0', cursor:'pointer' }}>
+            <div style={{ width:17, height:17, borderRadius:'50%', border:`1.5px solid ${filters.minRating === r ? '#1C1B19' : '#D9D2C4'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              {filters.minRating === r && <div style={{ width:9, height:9, borderRadius:'50%', background:'#1C1B19' }}/>}
+            </div>
+            <StarRating rating={r} showNumber={false} size={13}/>
+            <span style={{ fontSize:13, color:'#6B5D4F' }}>& up</span>
+          </label>
+        ))}
+      </FilterSection>
+      <FilterSection title="Availability">
+        <CheckboxRow label="In stock only" checked={filters.inStockOnly}
+          onChange={() => setFilters((f) => ({ ...f, inStockOnly:!f.inStockOnly }))}/>
+      </FilterSection>
+    </div>
+  );
+}
+
+function FilterChip({ label, onRemove }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:6, background:'#EDE7DA', borderRadius:20, padding:'6px 8px 6px 12px', fontSize:12.5, fontWeight:500, color:'#3D3936' }}>
+      {label}
+      <button onClick={onRemove} style={{ background:'#D9D2C4', border:'none', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+        <X size={10} color="#3D3936"/>
+      </button>
+    </div>
+  );
+}
+
+function ProductsPage({ onNavigate, searchQuery, setSearchQuery, selectedCategory, setSelectedCategory }) {
+  const maxPrice = useMemo(() => Math.max(...PRODUCTS.map((p) => p.price)), []);
+  const [filters, setFilters] = useState({ categories: selectedCategory ? [selectedCategory] : [], maxPrice, minRating:0, inStockOnly:false });
+  const [sortBy, setSortBy] = useState('newest');
+  const [loading, setLoading] = useState(true);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    if (selectedCategory) { setFilters((f) => ({ ...f, categories:[selectedCategory] })); setSelectedCategory(null); }
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    setLoading(true);
+    const t = setTimeout(() => setLoading(false), 450);
+    return () => clearTimeout(t);
+  }, [filters, sortBy, searchQuery]);
+
+  const filtered = useMemo(() => {
+    let result = PRODUCTS.filter((p) => {
+      if (filters.categories.length > 0 && !filters.categories.includes(p.category)) return false;
+      if (p.price > filters.maxPrice) return false;
+      if (filters.minRating > 0 && p.rating < filters.minRating) return false;
+      if (filters.inStockOnly && !p.inStock) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        if (!p.name.toLowerCase().includes(q) && !p.category.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+    switch (sortBy) {
+      case 'price-asc': result.sort((a,b) => a.price-b.price); break;
+      case 'price-desc': result.sort((a,b) => b.price-a.price); break;
+      case 'rating-desc': result.sort((a,b) => b.rating-a.rating); break;
+      case 'newest': result.sort((a,b) => a.addedDaysAgo-b.addedDaysAgo); break;
+    }
+    return result;
+  }, [filters, sortBy, searchQuery]);
+
+  const productCounts = useMemo(() => {
+    const counts = {};
+    PRODUCTS.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+    return counts;
+  }, []);
+
+  const activeFilterCount = filters.categories.length + (filters.minRating > 0 ? 1 : 0) + (filters.inStockOnly ? 1 : 0) + (filters.maxPrice < maxPrice ? 1 : 0);
+
+  return (
+    <div style={{ maxWidth:1320, margin:'0 auto', padding:'32px 24px 90px' }}>
+      <div style={{ marginBottom:28 }}>
+        <h1 style={{ fontFamily:'Fraunces, serif', fontSize:38, fontWeight:700, color:'#1C1B19', margin:'0 0 8px' }}>Shop all products</h1>
+        <p style={{ fontSize:14.5, color:'#8C8579', margin:0 }}>
+          {loading ? 'Searching…' : `${filtered.length} ${filtered.length===1 ? 'result' : 'results'}`}
+          {searchQuery && !loading && <> for "<strong style={{ color:'#1C1B19' }}>{searchQuery}</strong>"</>}
+        </p>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:36 }} className="products-layout">
+        <aside className="filter-sidebar">
+          <FilterPanel filters={filters} setFilters={setFilters} productCounts={productCounts} maxPrice={maxPrice}/>
+        </aside>
+        <div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22, gap:12, flexWrap:'wrap' }}>
+            <button className="mobile-filter-btn" onClick={() => setMobileFiltersOpen(true)}
+              style={{ display:'none', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:8, border:'1.5px solid #EFE9DD', background:'#FFFFFF', cursor:'pointer', fontSize:13.5, fontWeight:600, color:'#1C1B19' }}>
+              <Filter size={15}/> Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </button>
+            <div/>
+            <div style={{ position:'relative' }}>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                style={{ appearance:'none', border:'1.5px solid #EFE9DD', borderRadius:8, padding:'10px 36px 10px 14px', fontSize:13.5, fontWeight:600, color:'#1C1B19', background:'#FFFFFF', cursor:'pointer' }}>
+                {SORT_OPTIONS.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+              </select>
+              <ChevronDown size={14} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color:'#6B5D4F' }}/>
+            </div>
+          </div>
+
+          {activeFilterCount > 0 && (
+            <div style={{ display:'flex', gap:8, marginBottom:18, flexWrap:'wrap' }}>
+              {filters.categories.map((c) => (
+                <FilterChip key={c} label={CATEGORIES.find((cat) => cat.id===c)?.name}
+                  onRemove={() => setFilters((f) => ({ ...f, categories:f.categories.filter((x) => x!==c) }))}/>
+              ))}
+              {filters.minRating > 0 && <FilterChip label={`${filters.minRating}+ stars`} onRemove={() => setFilters((f) => ({ ...f, minRating:0 }))}/>}
+              {filters.inStockOnly && <FilterChip label="In stock" onRemove={() => setFilters((f) => ({ ...f, inStockOnly:false }))}/>}
+              {filters.maxPrice < maxPrice && <FilterChip label={`Under $${filters.maxPrice}`} onRemove={() => setFilters((f) => ({ ...f, maxPrice }))}/>}
+            </div>
+          )}
+
+          {loading ? (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }} className="product-grid-3">
+              {Array.from({ length:6 }).map((_,i) => <ProductCardSkeleton key={i}/>)}
+            </div>
+          ) : filtered.length === 0 ? (
+            <EmptyState icon={Search} title="No products found"
+              message="Try removing a filter or searching for something else — like 'lamp', 'sofa', or 'rug'."
+              action={<Button variant="secondary" onClick={() => { setFilters({ categories:[], maxPrice, minRating:0, inStockOnly:false }); setSearchQuery(''); }}>Clear filters</Button>}
+            />
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }} className="product-grid-3">
+              {filtered.map((p) => <ProductCard key={p.id} product={p} onNavigate={onNavigate}/>)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {mobileFiltersOpen && (
+        <div style={{ position:'fixed', inset:0, zIndex:55, display:'flex' }}>
+          <div onClick={() => setMobileFiltersOpen(false)} style={{ position:'absolute', inset:0, background:'rgba(28,27,25,0.35)' }}/>
+          <div style={{ position:'relative', marginLeft:'auto', width:'min(340px,88vw)', height:'100%', background:'#FAF7F2', padding:24, overflowY:'auto' }}>
+            <button onClick={() => setMobileFiltersOpen(false)} style={{ position:'absolute', top:20, right:20, background:'none', border:'none', cursor:'pointer' }}>
+              <X size={20}/>
+            </button>
+            <div style={{ marginTop:32 }}>
+              <FilterPanel filters={filters} setFilters={setFilters} productCounts={productCounts} maxPrice={maxPrice}/>
+            </div>
+            <Button variant="primary" full onClick={() => setMobileFiltersOpen(false)} style={{ marginTop:12 }}>Show {filtered.length} results</Button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media (max-width:920px) {
+          .products-layout { grid-template-columns:1fr !important; }
+          .filter-sidebar { display:none !important; }
+          .mobile-filter-btn { display:flex !important; }
+          .product-grid-3 { grid-template-columns:repeat(2,1fr) !important; }
+        }
+        @media (max-width:560px) { .product-grid-3 { grid-template-columns:1fr !important; } }
+      `}</style>
+    </div>
+  );
+}
+
+/* ============================================================
+   PRODUCT DETAIL PAGE
+   ============================================================ */
+
+function ProductDetailPage({ productId, onNavigate }) {
+  const { addItem } = useCart();
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [activeTab, setActiveTab] = useState('description');
+
+  const product = PRODUCTS.find((p) => p.id === productId);
+
+  useEffect(() => { setLoading(true); setSelectedImage(0); setQuantity(1); const t = setTimeout(() => setLoading(false), 400); return () => clearTimeout(t); }, [productId]);
+  useEffect(() => { if (product) { setSelectedColor(product.colors?.[0] || null); setSelectedSize(product.sizes?.[1] || null); } }, [product]);
+
+  if (!product) {
+    return (
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:'60px 24px' }}>
+        <EmptyState icon={AlertCircle} title="Product not found"
+          message="This product may have been removed or the link is broken."
+          action={<Button variant="primary" onClick={() => onNavigate('products')}>Back to shop</Button>}
+        />
+      </div>
+    );
+  }
+
+  const similar = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const discount = product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : null;
+
+  return (
+    <div style={{ maxWidth:1320, margin:'0 auto', padding:'24px 24px 90px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:24, fontSize:13, color:'#A39B8C' }}>
+        <button onClick={() => onNavigate('home')} style={{ background:'none', border:'none', cursor:'pointer', color:'#A39B8C', display:'flex', alignItems:'center' }}><HomeIcon size={13}/></button>
+        <ChevronRight size={13}/>
+        <button onClick={() => onNavigate('products')} style={{ background:'none', border:'none', cursor:'pointer', color:'#A39B8C' }}>Shop</button>
+        <ChevronRight size={13}/>
+        <span style={{ color:'#1C1B19' }}>{product.name}</span>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:56 }} className="pdp-grid">
+        <div>
+          {loading ? (
+            <>
+              <Skeleton height={0} style={{ paddingBottom:'100%', borderRadius:12, marginBottom:12 }}/>
+              <div style={{ display:'flex', gap:10 }}>
+                {[1,2,3].map((i) => <Skeleton key={i} width={84} height={84} radius={8}/>)}
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ borderRadius:12, overflow:'hidden', aspectRatio:'1/1', marginBottom:12 }}>
+                <ProductImage id={product.images[selectedImage]} alt={product.name} className="pdp-main"/>
+                <style>{`.pdp-main { width:100%; height:100%; }`}</style>
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                {product.images.map((imgId, idx) => (
+                  <button key={imgId} onClick={() => setSelectedImage(idx)}
+                    style={{ width:84, height:84, borderRadius:8, overflow:'hidden', padding:0, border:`2px solid ${selectedImage===idx ? '#1C1B19' : 'transparent'}`, cursor:'pointer', flexShrink:0 }}>
+                    <ProductImage id={imgId} alt={`view ${idx+1}`} className="pdp-thumb"/>
+                    <style>{`.pdp-thumb { width:100%; height:100%; }`}</style>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div>
+          {loading ? (
+            <div>
+              <Skeleton width="30%" height={13} style={{ marginBottom:14 }}/>
+              <Skeleton width="70%" height={32} style={{ marginBottom:14 }}/>
+              <Skeleton width="40%" height={18} style={{ marginBottom:20 }}/>
+              <Skeleton width="100%" height={80} style={{ marginBottom:24 }}/>
+              <Skeleton width="100%" height={48} radius={8}/>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize:12, color:'#A39B8C', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>
+                {CATEGORIES.find((c) => c.id===product.category)?.name}
+              </div>
+              <h1 style={{ fontFamily:'Fraunces, serif', fontSize:38, fontWeight:700, color:'#1C1B19', margin:'0 0 12px', lineHeight:1.15 }}>{product.name}</h1>
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
+                <StarRating rating={product.rating}/>
+                <span style={{ fontSize:13, color:'#A39B8C' }}>{product.reviewCount} reviews</span>
+                {product.isNew && <Badge tone="new">New</Badge>}
+              </div>
+              <div style={{ marginBottom:6 }}><Price price={product.price} originalPrice={product.originalPrice} size="xl"/></div>
+              {discount && <div style={{ marginBottom:18 }}><Badge tone="sale">Save {discount}%</Badge></div>}
+
+              <p style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.75, margin:'18px 0 24px' }}>{product.description}</p>
+
+              {product.colors && (
+                <div style={{ marginBottom:22 }}>
+                  <div style={{ fontSize:13.5, fontWeight:600, color:'#1C1B19', marginBottom:10 }}>
+                    Color: <span style={{ color:'#6B5D4F', fontWeight:500 }}>{selectedColor}</span>
+                  </div>
+                  <div style={{ display:'flex', gap:10 }}>
+                    {product.colors.map((c) => (
+                      <button key={c} onClick={() => setSelectedColor(c)} aria-label={c}
+                        style={{ width:36, height:36, borderRadius:'50%', border: selectedColor===c ? '2px solid #1C1B19' : '2px solid transparent', padding:2, cursor:'pointer', background:'transparent', outline: selectedColor===c ? '1px solid #1C1B19' : 'none', outlineOffset:2 }}>
+                        <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: COLOR_HEX[c] || '#CCC', border:'1px solid rgba(0,0,0,0.08)' }}/>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {product.sizes && (
+                <div style={{ marginBottom:22 }}>
+                  <div style={{ fontSize:13.5, fontWeight:600, color:'#1C1B19', marginBottom:10 }}>Size</div>
+                  <div style={{ display:'flex', gap:10 }}>
+                    {product.sizes.map((s) => (
+                      <button key={s} onClick={() => setSelectedSize(s)}
+                        style={{ width:44, height:40, borderRadius:8, fontSize:13.5, fontWeight:600, border:`1.5px solid ${selectedSize===s ? '#1C1B19' : '#EFE9DD'}`, background: selectedSize===s ? '#1C1B19' : '#FFFFFF', color: selectedSize===s ? '#FAF7F2' : '#1C1B19', cursor:'pointer', transition:'all 0.15s ease' }}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display:'flex', gap:12, alignItems:'stretch', marginBottom:18 }}>
+                <div style={{ display:'flex', alignItems:'center', border:'1.5px solid #EFE9DD', borderRadius:8 }}>
+                  <button onClick={() => setQuantity((q) => Math.max(1,q-1))} style={{ width:44, height:48, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Minus size={15} color="#1C1B19"/></button>
+                  <span style={{ width:40, textAlign:'center', fontSize:15, fontWeight:600 }}>{quantity}</span>
+                  <button onClick={() => setQuantity((q) => q+1)} style={{ width:44, height:48, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Plus size={15} color="#1C1B19"/></button>
+                </div>
+                <Button variant="accent" size="lg" style={{ flex:1, height:48 }} disabled={!product.inStock}
+                  onClick={() => addItem(product, { color:selectedColor, size:selectedSize, quantity })}>
+                  <ShoppingBag size={17}/>
+                  {product.inStock ? 'Add to cart' : 'Out of stock'}
+                </Button>
+              </div>
+
+              {!product.inStock && (
+                <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#B5562C', marginBottom:18 }}>
+                  <AlertCircle size={15}/> This item is currently out of stock
+                </div>
+              )}
+
+              <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#6B5D4F', paddingTop:18, borderTop:'1px solid #EFE9DD' }}>
+                <Truck size={16}/> Free shipping on orders over ${FREE_SHIPPING_THRESHOLD}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {!loading && (
+        <div style={{ marginTop:60 }}>
+          <div style={{ display:'flex', gap:28, borderBottom:'1px solid #EFE9DD', marginBottom:24 }}>
+            {[{ id:'description', label:'Description' }, { id:'details', label:'Materials & care' }, { id:'reviews', label:`Reviews (${product.reviewCount})` }].map((tab) => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                style={{ background:'none', border:'none', cursor:'pointer', padding:'0 0 14px', fontSize:14.5, fontWeight:600, color: activeTab===tab.id ? '#1C1B19' : '#A39B8C', borderBottom: activeTab===tab.id ? '2px solid #B5562C' : '2px solid transparent' }}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ maxWidth:720 }}>
+            {activeTab==='description' && <p style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.8, margin:0 }}>{product.description} Every piece is inspected before it leaves our workshop, and packaging is designed to be reused.</p>}
+            {activeTab==='details' && <ul style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.9, margin:0, paddingLeft:20 }}>{product.details.map((d,i) => <li key={i}>{d}</li>)}</ul>}
+            {activeTab==='reviews' && (
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:24 }}>
+                  <div style={{ fontFamily:'Fraunces, serif', fontSize:48, fontWeight:700, color:'#1C1B19' }}>{product.rating.toFixed(1)}</div>
+                  <div>
+                    <StarRating rating={product.rating} showNumber={false} size={18}/>
+                    <div style={{ fontSize:13, color:'#A39B8C', marginTop:4 }}>Based on {product.reviewCount} reviews</div>
+                  </div>
+                </div>
+                {[
+                  { name:'Jordan M.', rating:5, text:'Exactly as pictured and incredibly comfortable. Assembly took about 15 minutes with two people.' },
+                  { name:'Priya K.', rating:4, text:'Lovely quality and finish. Shipping took a bit longer than expected but well worth the wait.' },
+                ].map((r,i) => (
+                  <div key={i} style={{ borderTop:'1px solid #EFE9DD', padding:'18px 0' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                      <span style={{ fontSize:14, fontWeight:600, color:'#1C1B19' }}>{r.name}</span>
+                      <StarRating rating={r.rating} showNumber={false} size={13}/>
+                    </div>
+                    <p style={{ fontSize:14, color:'#6B5D4F', lineHeight:1.7, margin:0 }}>{r.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!loading && similar.length > 0 && (
+        <div style={{ marginTop:72 }}>
+          <h2 style={{ fontFamily:'Fraunces, serif', fontSize:30, fontWeight:700, color:'#1C1B19', margin:'0 0 24px' }}>You may also like</h2>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:20 }} className="product-grid-4">
+            {similar.map((p) => <ProductCard key={p.id} product={p} onNavigate={onNavigate}/>)}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media (max-width:860px) { .pdp-grid { grid-template-columns:1fr !important; gap:28px !important; } }
+        @media (max-width:1000px) { .product-grid-4 { grid-template-columns:repeat(2,1fr) !important; } }
+        @media (max-width:560px) { .product-grid-4 { grid-template-columns:1fr !important; } }
+      `}</style>
+    </div>
+  );
+}
+
+/* ============================================================
+   CHECKOUT PAGE
+   ============================================================ */
+
+function Field({ label, type='text', value, onChange, placeholder, required, error, full }) {
+  return (
+    <div style={{ gridColumn: full ? '1/-1' : 'auto' }}>
+      <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#1C1B19', marginBottom:6 }}>
+        {label} {required && <span style={{ color:'#B5562C' }}>*</span>}
+      </label>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        style={{ width:'100%', padding:'11px 14px', borderRadius:8, fontSize:14, border:`1.5px solid ${error ? '#B5562C' : '#EFE9DD'}`, outline:'none', boxSizing:'border-box', background:'#FFFFFF', color:'#1C1B19' }}
+        onFocus={(e) => e.target.style.borderColor='#1C1B19'}
+        onBlur={(e) => e.target.style.borderColor=error ? '#B5562C' : '#EFE9DD'}
+      />
+      {error && <div style={{ fontSize:12, color:'#B5562C', marginTop:5 }}>{error}</div>}
+    </div>
+  );
+}
+
+function CheckoutSection({ number, title, children }) {
+  return (
+    <div style={{ marginBottom:36 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
+        <div style={{ width:28, height:28, borderRadius:'50%', background:'#1C1B19', color:'#FAF7F2', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}>
+          {number}
+        </div>
+        <h2 style={{ fontFamily:'Fraunces, serif', fontSize:22, fontWeight:700, color:'#1C1B19', margin:0 }}>{title}</h2>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function CheckoutPage({ onNavigate }) {
+  const { items, subtotal, clearCart } = useCart();
+  const [form, setForm] = useState({ email:'', firstName:'', lastName:'', address:'', city:'', zip:'', country:'United States', cardNumber:'', cardExpiry:'', cardCvc:'' });
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [shippingMethod, setShippingMethod] = useState('standard');
+  const [paymentMethod, setPaymentMethod] = useState('card');
+
+  const set = (key) => (val) => setForm((f) => ({ ...f, [key]:val }));
+  const shippingCost = shippingMethod==='express' ? 24 : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT);
+  const tax = subtotal * TAX_RATE;
+  const total = subtotal + shippingCost + tax;
+
+  const validate = () => {
+    const errs = {};
+    if (!form.email.includes('@')) errs.email='Enter a valid email address';
+    if (!form.firstName.trim()) errs.firstName='Required';
+    if (!form.lastName.trim()) errs.lastName='Required';
+    if (!form.address.trim()) errs.address='Required';
+    if (!form.city.trim()) errs.city='Required';
+    if (!form.zip.trim()) errs.zip='Required';
+    if (paymentMethod==='card') {
+      if (!/^\d{12,19}$/.test(form.cardNumber.replace(/\s/g,''))) errs.cardNumber='Enter a valid card number';
+      if (!/^\d{2}\/\d{2}$/.test(form.cardExpiry)) errs.cardExpiry='MM/YY';
+      if (!/^\d{3,4}$/.test(form.cardCvc)) errs.cardCvc='Invalid';
+    }
+    return errs;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const errs = validate();
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    setSubmitting(true);
+    setTimeout(() => { setSubmitting(false); setOrderPlaced(true); clearCart(); }, 1200);
+  };
+
+  if (orderPlaced) {
+    return (
+      <div style={{ maxWidth:600, margin:'0 auto', padding:'90px 24px', textAlign:'center' }}>
+        <div style={{ width:72, height:72, borderRadius:'50%', background:'#3D4A3D', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px' }}>
+          <Check size={32} color="#FAF7F2"/>
+        </div>
+        <h1 style={{ fontFamily:'Fraunces, serif', fontSize:34, fontWeight:700, color:'#1C1B19', margin:'0 0 12px' }}>Order confirmed</h1>
+        <p style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.7, marginBottom:32 }}>
+          Thanks{form.firstName ? `, ${form.firstName}` : ''} — we've sent a confirmation to <strong>{form.email}</strong>.
+          Your order total was <strong>${total.toFixed(2)}</strong>.
+        </p>
+        <Button variant="primary" size="lg" onClick={() => onNavigate('home')}>Back to home</Button>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:'60px 24px' }}>
+        <EmptyState icon={ShoppingCart} title="Nothing to check out"
+          message="Your cart is empty. Add some products before heading to checkout."
+          action={<Button variant="primary" onClick={() => onNavigate('products')}>Browse products</Button>}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth:1180, margin:'0 auto', padding:'32px 24px 90px' }}>
+      <h1 style={{ fontFamily:'Fraunces, serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'0 0 32px' }}>Checkout</h1>
+      <form onSubmit={handleSubmit} style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:56 }} className="checkout-grid">
+        <div>
+          <CheckoutSection number={1} title="Contact information">
+            <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:16 }}>
+              <Field label="Email address" type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" required error={errors.email}/>
+            </div>
+          </CheckoutSection>
+
+          <CheckoutSection number={2} title="Shipping address">
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+              <Field label="First name" value={form.firstName} onChange={set('firstName')} required error={errors.firstName}/>
+              <Field label="Last name" value={form.lastName} onChange={set('lastName')} required error={errors.lastName}/>
+              <Field label="Street address" value={form.address} onChange={set('address')} required error={errors.address} full placeholder="123 Maple Street"/>
+              <Field label="City" value={form.city} onChange={set('city')} required error={errors.city}/>
+              <Field label="ZIP / Postal code" value={form.zip} onChange={set('zip')} required error={errors.zip}/>
+            </div>
+            <div style={{ marginTop:22 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'#1C1B19', marginBottom:10 }}>Shipping method</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {[
+                  { id:'standard', label:'Standard shipping', sub:'5–7 business days', cost: subtotal>=FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT },
+                  { id:'express', label:'Express shipping', sub:'1–2 business days', cost:24 },
+                ].map((opt) => (
+                  <label key={opt.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', border:`1.5px solid ${shippingMethod===opt.id ? '#1C1B19' : '#EFE9DD'}`, borderRadius:8, cursor:'pointer' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                      <div style={{ width:17, height:17, borderRadius:'50%', border:`1.5px solid ${shippingMethod===opt.id ? '#1C1B19' : '#D9D2C4'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        {shippingMethod===opt.id && <div style={{ width:9, height:9, borderRadius:'50%', background:'#1C1B19' }}/>}
+                      </div>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:600, color:'#1C1B19' }}>{opt.label}</div>
+                        <div style={{ fontSize:12.5, color:'#A39B8C' }}>{opt.sub}</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize:14, fontWeight:600, color:'#1C1B19' }}>{opt.cost===0 ? 'Free' : `$${opt.cost}`}</span>
+                    <input type="radio" name="shipping" checked={shippingMethod===opt.id} onChange={() => setShippingMethod(opt.id)} style={{ display:'none' }}/>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </CheckoutSection>
+
+          <CheckoutSection number={3} title="Payment">
+            <div style={{ display:'flex', gap:10, marginBottom:18 }}>
+              {[{ id:'card', label:'Card', icon:CreditCard }, { id:'paypal', label:'PayPal', icon:Package }].map((m) => (
+                <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
+                  style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 18px', borderRadius:8, border:`1.5px solid ${paymentMethod===m.id ? '#1C1B19' : '#EFE9DD'}`, background: paymentMethod===m.id ? '#1C1B19' : '#FFFFFF', color: paymentMethod===m.id ? '#FAF7F2' : '#1C1B19', fontSize:13.5, fontWeight:600, cursor:'pointer' }}>
+                  <m.icon size={15}/> {m.label}
+                </button>
+              ))}
+            </div>
+            {paymentMethod==='card' ? (
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                <Field label="Card number" value={form.cardNumber} onChange={set('cardNumber')} placeholder="1234 5678 9012 3456" required error={errors.cardNumber} full/>
+                <Field label="Expiry" value={form.cardExpiry} onChange={set('cardExpiry')} placeholder="MM/YY" required error={errors.cardExpiry}/>
+                <Field label="CVC" value={form.cardCvc} onChange={set('cardCvc')} placeholder="123" required error={errors.cardCvc}/>
+              </div>
+            ) : (
+              <p style={{ fontSize:14, color:'#6B5D4F' }}>You'll be redirected to PayPal to complete your purchase.</p>
+            )}
+          </CheckoutSection>
+        </div>
+
+        <div>
+          <div style={{ background:'#FFFFFF', border:'1px solid #EFE9DD', borderRadius:12, padding:24, position:'sticky', top:96 }}>
+            <h3 style={{ fontFamily:'Fraunces, serif', fontSize:20, fontWeight:700, color:'#1C1B19', margin:'0 0 18px' }}>Order summary</h3>
+            <div style={{ maxHeight:280, overflowY:'auto', marginBottom:16 }}>
+              {items.map((item) => (
+                <div key={item.lineId} style={{ display:'flex', gap:12, marginBottom:14 }}>
+                  <div style={{ position:'relative', flexShrink:0 }}>
+                    <div style={{ width:56, height:56, borderRadius:6, overflow:'hidden' }}>
+                      <ProductImage id={item.productId} alt={item.name} className="co-thumb"/>
+                      <style>{`.co-thumb { width:100%; height:100%; }`}</style>
+                    </div>
+                    <span style={{ position:'absolute', top:-6, right:-6, width:20, height:20, borderRadius:'50%', background:'#1C1B19', color:'#FAF7F2', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      {item.quantity}
+                    </span>
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontFamily:'Fraunces, serif', fontSize:14, fontWeight:600, color:'#1C1B19', lineHeight:1.3 }}>{item.name}</div>
+                    <div style={{ fontSize:12, color:'#A39B8C' }}>{item.color}{item.color && item.size && ' · '}{item.size && `Size ${item.size}`}</div>
+                  </div>
+                  <div style={{ fontSize:13.5, fontWeight:600, color:'#1C1B19' }}>${(item.price*item.quantity).toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ borderTop:'1px solid #EFE9DD', paddingTop:14 }}>
+              <SummaryRow label="Subtotal" value={subtotal}/>
+              <SummaryRow label="Shipping" value={shippingCost} freeLabel={shippingCost===0}/>
+              <SummaryRow label="Estimated tax" value={tax}/>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:12, paddingTop:12, borderTop:'1px solid #EFE9DD' }}>
+                <span style={{ fontSize:15, fontWeight:600, color:'#1C1B19' }}>Total</span>
+                <span style={{ fontFamily:'Fraunces, serif', fontSize:26, fontWeight:700, color:'#1C1B19' }}>${total.toFixed(2)}</span>
+              </div>
+            </div>
+            <Button type="submit" variant="accent" full size="lg" disabled={submitting} style={{ marginTop:20 }}>
+              {submitting ? 'Placing order…' : `Place order — $${total.toFixed(2)}`}
+            </Button>
+            <p style={{ fontSize:11.5, color:'#A39B8C', textAlign:'center', marginTop:12, lineHeight:1.6 }}>
+              By placing your order, you agree to our Terms of Service and Privacy Policy.
+            </p>
+          </div>
+        </div>
+      </form>
+      <style>{`@media (max-width:900px) { .checkout-grid { grid-template-columns:1fr !important; gap:32px !important; } }`}</style>
+    </div>
+  );
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+function Footer({ onNavigate }) {
+  return (
+    <footer style={{ background:'#1C1B19', color:'#C8C2B6', marginTop:'auto' }}>
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:'56px 24px 28px', display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1fr', gap:40 }} className="footer-grid">
+        <div>
+          <div style={{ fontFamily:'Fraunces, serif', fontSize:24, fontWeight:700, color:'#FAF7F2', marginBottom:14 }}>
+            Atelier<span style={{ color:'#D9A05B' }}>Nova</span>
+          </div>
+          <p style={{ fontSize:13.5, lineHeight:1.8, maxWidth:280, color:'#9C958A' }}>
+            Thoughtfully designed furniture and decor, made to last and built around how you actually live.
+          </p>
+        </div>
+        {[
+          { title:'Shop', links:['New arrivals','Best sellers','Sale','All products'] },
+          { title:'Support', links:['Shipping & returns','Track an order','FAQs','Contact us'] },
+          { title:'Company', links:['Our story','Sustainability','Careers','Press'] },
+        ].map(({ title, links }) => (
+          <div key={title}>
+            <div style={{ fontSize:13, fontWeight:700, color:'#FAF7F2', marginBottom:16, textTransform:'uppercase', letterSpacing:'0.06em' }}>{title}</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {links.map((l) => (
+                <button key={l} onClick={() => onNavigate('products')} style={{ background:'none', border:'none', cursor:'pointer', textAlign:'left', fontSize:13.5, color:'#9C958A', padding:0 }}>{l}</button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ borderTop:'1px solid #34322F', padding:'20px 24px', maxWidth:1320, margin:'0 auto', display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+        <span style={{ fontSize:12.5, color:'#7A746A' }}>© 2026 AtelierNova. All rights reserved.</span>
+        <span style={{ fontSize:12.5, color:'#7A746A' }}>Portfolio demo — all data is simulated</span>
+      </div>
+      <style>{`@media (max-width:800px) { .footer-grid { grid-template-columns:1fr 1fr !important; } }`}</style>
+    </footer>
+  );
+}
+
+/* ============================================================
+   ROOT APP
+   ============================================================ */
+
+function App() {
+  const [page, setPage] = useState('home');
+  const [productId, setProductId] = useState(null);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
+  const handleNavigate = (target, id) => {
+    setPage(target);
+    if (target==='product') setProductId(id);
+    window.scrollTo({ top:0, behavior:'instant' });
+  };
+
+  return (
+    <CartProvider>
+      <div style={{ background:'#FAF7F2', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#1C1B19' }}>
+        <Header onNavigate={handleNavigate} currentPage={page} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenCart={() => setCartOpen(true)}/>
+        <main style={{ flex:1 }}>
+          {page==='home' && <HomePage onNavigate={handleNavigate} setSelectedCategory={setSelectedCategory}/>}
+          {page==='products' && <ProductsPage onNavigate={handleNavigate} searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}/>}
+          {page==='product' && <ProductDetailPage productId={productId} onNavigate={handleNavigate}/>}
+          {page==='checkout' && <CheckoutPage onNavigate={handleNavigate}/>}
+        </main>
+        <Footer onNavigate={handleNavigate}/>
+        <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} onNavigate={handleNavigate}/>
+        <ToastWrapper/>
+      </div>
+    </CartProvider>
+  );
+}
+
+function ToastWrapper() {
+  const { toast } = useCart();
+  return <Toast toast={toast}/>;
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>
