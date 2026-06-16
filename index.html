@@ -6,223 +6,115 @@
   <title>AtelierNova — Furniture Store</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Inter, sans-serif; background: #FAF7F2; }
+    body { margin: 0; font-family: 'Inter', sans-serif; background: #FAF7F2; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    input[type="range"]::-webkit-slider-thumb { background: #B5562C; }
-    select:focus { outline: 2px solid #1C1B19; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    input[type="range"] { accent-color: #B5562C; }
     button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #B5562C; outline-offset: 2px; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #D9D2C4; border-radius: 3px; }
   </style>
 </head>
 <body>
 <div id="root"></div>
 
-<!-- React + ReactDOM from CDN -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<!-- Babel for JSX transpilation -->
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<!-- Lucide Icons -->
-<script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.js"></script>
-
 <script type="text/babel">
-const {
-  useState, useMemo, useEffect, useCallback,
-  createContext, useContext, useRef
-} = React;
-
-/* ── Lucide icon shim ── */
-function LucideIcon({ name, size = 16, color = 'currentColor', strokeWidth = 2, style, ...rest }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current && window.lucide) {
-      ref.current.innerHTML = '';
-      const icon = window.lucide.createElement(name);
-      if (icon) {
-        icon.setAttribute('width', size);
-        icon.setAttribute('height', size);
-        icon.setAttribute('stroke', color);
-        icon.setAttribute('stroke-width', strokeWidth);
-        icon.setAttribute('fill', 'none');
-        icon.setAttribute('stroke-linecap', 'round');
-        icon.setAttribute('stroke-linejoin', 'round');
-        ref.current.appendChild(icon);
-      }
-    }
-  }, [name, size, color, strokeWidth]);
-  return <span ref={ref} style={{ display:'inline-flex', alignItems:'center', ...style }} {...rest} />;
-}
-
-const Search = (p) => <LucideIcon name="search" {...p}/>;
-const ShoppingBag = (p) => <LucideIcon name="shopping-bag" {...p}/>;
-const X = (p) => <LucideIcon name="x" {...p}/>;
-const Plus = (p) => <LucideIcon name="plus" {...p}/>;
-const Minus = (p) => <LucideIcon name="minus" {...p}/>;
-const Star = ({ size=14, fill='none', stroke='currentColor', strokeWidth=1.5 }) => {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block',verticalAlign:'middle'}}>
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  );
-};
-const ChevronDown = (p) => <LucideIcon name="chevron-down" {...p}/>;
-const ChevronRight = (p) => <LucideIcon name="chevron-right" {...p}/>;
-const ChevronLeft = (p) => <LucideIcon name="chevron-left" {...p}/>;
-const SlidersHorizontal = (p) => <LucideIcon name="sliders-horizontal" {...p}/>;
-const Heart = (p) => <LucideIcon name="heart" {...p}/>;
-const Check = (p) => <LucideIcon name="check" {...p}/>;
-const AlertCircle = (p) => <LucideIcon name="alert-circle" {...p}/>;
-const Package = (p) => <LucideIcon name="package" {...p}/>;
-const Truck = (p) => <LucideIcon name="truck" {...p}/>;
-const CreditCard = (p) => <LucideIcon name="credit-card" {...p}/>;
-const ArrowRight = (p) => <LucideIcon name="arrow-right" {...p}/>;
-const Filter = (p) => <LucideIcon name="filter" {...p}/>;
-const Trash2 = (p) => <LucideIcon name="trash-2" {...p}/>;
-const ShoppingCart = (p) => <LucideIcon name="shopping-cart" {...p}/>;
-const HomeIcon = (p) => <LucideIcon name="home" {...p}/>;
+const { useState, useMemo, useEffect, useCallback, createContext, useContext, useRef } = React;
 
 /* ============================================================
-   INLINE PRODUCT IMAGES — pure SVG, no external URLs
+   PRODUCT IMAGES — Real Unsplash photos mapped per product
    ============================================================ */
+const PRODUCT_IMAGES = {
+  // SEATING
+  1:  ['https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80','https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80','https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&q=80'],
+  2:  ['https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&q=80','https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80','https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80'],
+  3:  ['https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=600&q=80','https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&q=80','https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80'],
+  4:  ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80','https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=80','https://images.unsplash.com/photo-1540574163026-643ea20ade25?w=600&q=80'],
+  5:  ['https://images.unsplash.com/photo-1503602642458-232111445657?w=600&q=80','https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80','https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&q=80'],
+  6:  ['https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=80','https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80','https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=600&q=80'],
+  7:  ['https://images.unsplash.com/photo-1540574163026-643ea20ade25?w=600&q=80','https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&q=80','https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80'],
+  8:  ['https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80','https://images.unsplash.com/photo-1540574163026-643ea20ade25?w=600&q=80','https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=600&q=80'],
+  // LIGHTING
+  9:  ['https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&q=80','https://images.unsplash.com/photo-1513506003901-1e6a35fb3ac0?w=600&q=80','https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&q=80'],
+  10: ['https://images.unsplash.com/photo-1513506003901-1e6a35fb3ac0?w=600&q=80','https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&q=80','https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&q=80'],
+  11: ['https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&q=80','https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&q=80','https://images.unsplash.com/photo-1513506003901-1e6a35fb3ac0?w=600&q=80'],
+  12: ['https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=600&q=80','https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&q=80','https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&q=80'],
+  13: ['https://images.unsplash.com/photo-1513506003901-1e6a35fb3ac0?w=600&q=80','https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=600&q=80','https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=600&q=80'],
+  14: ['https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&q=80','https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=600&q=80','https://images.unsplash.com/photo-1513506003901-1e6a35fb3ac0?w=600&q=80'],
+  // TABLES
+  15: ['https://images.unsplash.com/photo-1577140917170-285929fb55b7?w=600&q=80','https://images.unsplash.com/photo-1551298370-9d3d53740c72?w=600&q=80','https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&q=80'],
+  16: ['https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&q=80','https://images.unsplash.com/photo-1577140917170-285929fb55b7?w=600&q=80','https://images.unsplash.com/photo-1551298370-9d3d53740c72?w=600&q=80'],
+  17: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80','https://images.unsplash.com/photo-1577140917170-285929fb55b7?w=600&q=80','https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&q=80'],
+  18: ['https://images.unsplash.com/photo-1551298370-9d3d53740c72?w=600&q=80','https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&q=80','https://images.unsplash.com/photo-1577140917170-285929fb55b7?w=600&q=80'],
+  19: ['https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=600&q=80','https://images.unsplash.com/photo-1577140917170-285929fb55b7?w=600&q=80','https://images.unsplash.com/photo-1551298370-9d3d53740c72?w=600&q=80'],
+  // STORAGE
+  20: ['https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600&q=80','https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80','https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80'],
+  21: ['https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=80','https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600&q=80','https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80'],
+  22: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80','https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600&q=80','https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=80'],
+  23: ['https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600&q=80','https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80','https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=80'],
+  24: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80','https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80','https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600&q=80'],
+  // TEXTILES
+  25: ['https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80','https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&q=80','https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=600&q=80'],
+  26: ['https://images.unsplash.com/photo-1615873968403-89e068629265?w=600&q=80','https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80','https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&q=80'],
+  27: ['https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&q=80','https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80','https://images.unsplash.com/photo-1615873968403-89e068629265?w=600&q=80'],
+  28: ['https://images.unsplash.com/photo-1567016376408-0226e4d0c1ea?w=600&q=80','https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&q=80','https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80'],
+  29: ['https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=600&q=80','https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80','https://images.unsplash.com/photo-1615873968403-89e068629265?w=600&q=80'],
+  30: ['https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=600&q=80','https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80','https://images.unsplash.com/photo-1567016376408-0226e4d0c1ea?w=600&q=80'],
+  // DECOR
+  31: ['https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=600&q=80','https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&q=80','https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&q=80'],
+  32: ['https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&q=80','https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=600&q=80','https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&q=80'],
+  33: ['https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&q=80','https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=600&q=80','https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&q=80'],
+  34: ['https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&q=80','https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&q=80','https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=600&q=80'],
+  35: ['https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&q=80','https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&q=80','https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&q=80'],
+  36: ['https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=600&q=80','https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&q=80','https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&q=80'],
+};
 
-function seededRandom(seed) {
-  let s = seed;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
-}
+const CATEGORY_IMAGES = {
+  seating:  'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=80',
+  lighting: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400&q=80',
+  tables:   'https://images.unsplash.com/photo-1577140917170-285929fb55b7?w=400&q=80',
+  storage:  'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=400&q=80',
+  textiles: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&q=80',
+  decor:    'https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=400&q=80',
+};
 
-/* Deterministic SVG "product photo" — each id gets a unique scene */
-function ProductImage({ id, className = '', alt = '' }) {
-  const rand = seededRandom(id * 31 + 7);
-  const hueA = Math.floor(rand() * 360);
-  const hueB = (hueA + 30 + Math.floor(rand() * 60)) % 360;
-  const sat = 18 + Math.floor(rand() * 12);
-  const sceneType = Math.floor(rand() * 6); // 0-5 different furniture silhouettes
-
-  const bg1 = `hsl(${hueA} ${sat}% 88%)`;
-  const bg2 = `hsl(${hueB} ${sat}% 78%)`;
-  const stroke = `hsl(${hueA} ${sat+10}% 30%)`;
-  const fill1 = `hsl(${hueA} ${sat+5}% 70%)`;
-  const fill2 = `hsl(${hueB} ${sat+5}% 60%)`;
-
-  const scenes = [
-    // Chair
-    <g key="chair">
-      <rect x="28" y="55" width="44" height="30" rx="3" fill={fill1} stroke={stroke} strokeWidth="2"/>
-      <rect x="24" y="40" width="52" height="18" rx="3" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <rect x="28" y="85" width="5" height="14" rx="2" fill={stroke}/>
-      <rect x="67" y="85" width="5" height="14" rx="2" fill={stroke}/>
-      <rect x="32" y="55" width="5" height="30" rx="2" fill={stroke}/>
-      <rect x="63" y="55" width="5" height="30" rx="2" fill={stroke}/>
-    </g>,
-    // Lamp
-    <g key="lamp">
-      <ellipse cx="50" cy="32" rx="24" ry="14" fill={fill1} stroke={stroke} strokeWidth="2"/>
-      <line x1="50" y1="46" x2="50" y2="82" stroke={stroke} strokeWidth="3"/>
-      <ellipse cx="50" cy="83" rx="16" ry="5" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <ellipse cx="50" cy="82" rx="10" ry="3" fill={stroke}/>
-    </g>,
-    // Table
-    <g key="table">
-      <rect x="14" y="44" width="72" height="10" rx="3" fill={fill1} stroke={stroke} strokeWidth="2"/>
-      <rect x="18" y="54" width="5" height="30" rx="2" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <rect x="77" y="54" width="5" height="30" rx="2" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <rect x="25" y="54" width="4" height="26" rx="2" fill={stroke} opacity="0.4"/>
-      <rect x="71" y="54" width="4" height="26" rx="2" fill={stroke} opacity="0.4"/>
-    </g>,
-    // Sofa
-    <g key="sofa">
-      <rect x="14" y="52" width="72" height="28" rx="5" fill={fill1} stroke={stroke} strokeWidth="2"/>
-      <rect x="14" y="38" width="16" height="42" rx="4" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <rect x="70" y="38" width="16" height="42" rx="4" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <rect x="14" y="75" width="72" height="7" rx="3" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <rect x="20" y="80" width="8" height="6" rx="2" fill={stroke}/>
-      <rect x="72" y="80" width="8" height="6" rx="2" fill={stroke}/>
-    </g>,
-    // Shelf / Storage
-    <g key="shelf">
-      <rect x="20" y="20" width="60" height="65" rx="3" fill="none" stroke={stroke} strokeWidth="2"/>
-      <rect x="20" y="38" width="60" height="3" fill={fill1} stroke={stroke} strokeWidth="1.5"/>
-      <rect x="20" y="55" width="60" height="3" fill={fill1} stroke={stroke} strokeWidth="1.5"/>
-      <rect x="20" y="72" width="60" height="3" fill={fill1} stroke={stroke} strokeWidth="1.5"/>
-      <circle cx="38" cy="30" r="5" fill={fill2} stroke={stroke} strokeWidth="1.5"/>
-      <rect x="55" y="24" width="14" height="14" rx="1" fill={fill2} stroke={stroke} strokeWidth="1.5"/>
-      <rect x="28" y="43" width="18" height="12" rx="1" fill={fill2} stroke={stroke} strokeWidth="1.5"/>
-      <circle cx="62" cy="63" r="7" fill={fill2} stroke={stroke} strokeWidth="1.5"/>
-    </g>,
-    // Vase / Decor
-    <g key="decor">
-      <path d="M38 85 Q30 60 34 40 Q38 22 50 20 Q62 22 66 40 Q70 60 62 85 Z" fill={fill1} stroke={stroke} strokeWidth="2"/>
-      <ellipse cx="50" cy="85" rx="13" ry="4" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <ellipse cx="50" cy="20" rx="10" ry="5" fill={fill2} stroke={stroke} strokeWidth="2"/>
-      <path d="M34 50 Q50 46 66 50" stroke={stroke} strokeWidth="1.5" fill="none" strokeDasharray="4 2"/>
-    </g>,
-  ];
-
-  const uniqueId = `grad-${id}`;
-
-  return (
-    <div
-      className={className}
-      role="img"
-      aria-label={alt}
-      style={{
-        background: `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      <svg
-        width="55%"
-        height="55%"
-        viewBox="0 0 100 100"
-        style={{ opacity: 0.85 }}
-      >
-        <defs>
-          <linearGradient id={uniqueId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={fill1}/>
-            <stop offset="100%" stopColor={fill2}/>
-          </linearGradient>
-        </defs>
-        {scenes[sceneType]}
-      </svg>
-    </div>
-  );
-}
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=85';
+const PROMO_IMAGE = 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=800&q=85';
 
 /* ============================================================
    MOCK DATA
    ============================================================ */
-
 const CATEGORIES = [
-  { id: 'seating', name: 'Seating', count: 8, swatch: '#B5562C' },
+  { id: 'seating',  name: 'Seating',  count: 8, swatch: '#B5562C' },
   { id: 'lighting', name: 'Lighting', count: 6, swatch: '#D9A05B' },
-  { id: 'tables', name: 'Tables', count: 5, swatch: '#6B7560' },
-  { id: 'storage', name: 'Storage', count: 5, swatch: '#8C6E54' },
+  { id: 'tables',   name: 'Tables',   count: 5, swatch: '#6B7560' },
+  { id: 'storage',  name: 'Storage',  count: 5, swatch: '#8C6E54' },
   { id: 'textiles', name: 'Textiles', count: 6, swatch: '#A4584A' },
-  { id: 'decor', name: 'Decor', count: 6, swatch: '#3D4A3D' },
+  { id: 'decor',    name: 'Decor',    count: 6, swatch: '#3D4A3D' },
 ];
 
 const PRODUCT_NAMES = {
-  seating: ['Hollow Lounge Chair','Marrow Armchair','Bend Dining Chair','Fjord Sofa','Stack Stool','Linden Bench','Cradle Recliner','Petal Accent Chair'],
+  seating:  ['Hollow Lounge Chair','Marrow Armchair','Bend Dining Chair','Fjord Sofa','Stack Stool','Linden Bench','Cradle Recliner','Petal Accent Chair'],
   lighting: ['Halo Pendant','Drift Floor Lamp','Knoll Table Lamp','Arc Wall Sconce','Orbit Chandelier','Glow Reading Lamp'],
-  tables: ['Mesa Dining Table','Tide Coffee Table','Frame Console','Loop Side Table','Plinth Desk'],
-  storage: ['Cairn Bookshelf','Vault Sideboard','Niche Cabinet','Crate Trunk','Lattice Shoe Rack'],
+  tables:   ['Mesa Dining Table','Tide Coffee Table','Frame Console','Loop Side Table','Plinth Desk'],
+  storage:  ['Cairn Bookshelf','Vault Sideboard','Niche Cabinet','Crate Trunk','Lattice Shoe Rack'],
   textiles: ['Heather Throw Blanket','Dune Area Rug','Linen Cushion Set','Wool Pouf','Marsh Table Runner','Cloud Bedspread'],
-  decor: ['Terra Vase Trio','Quartz Bookends','Aura Mirror','Husk Candle Holder','Reed Wall Art','Stone Tray Set'],
+  decor:    ['Terra Vase Trio','Quartz Bookends','Aura Mirror','Husk Candle Holder','Reed Wall Art','Stone Tray Set'],
 };
 
 const ADJECTIVES = ['Oat','Clay','Moss','Stone','Walnut','Linen','Smoke','Sand','Rust','Ash'];
 
+function seededRandom(seed) {
+  let s = seed;
+  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+}
+
 function buildProducts() {
-  const products = [];
-  let id = 1;
+  const products = []; let id = 1;
   Object.entries(PRODUCT_NAMES).forEach(([catId, names]) => {
     names.forEach((name) => {
       const rand = seededRandom(id * 7 + 13);
@@ -236,20 +128,19 @@ function buildProducts() {
       const daysAgo = Math.floor(rand() * 200);
       const colorPool = ADJECTIVES.slice(0, 3 + Math.floor(rand() * 3));
       const hasSizes = ['seating','textiles','tables'].includes(catId);
+      const imgs = PRODUCT_IMAGES[id] || [
+        `https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80`,
+        `https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80`,
+        `https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&q=80`,
+      ];
       products.push({
         id, name, category: catId, price,
         originalPrice: hasDiscount ? basePrice : null,
         rating, reviewCount, inStock, isNew, addedDaysAgo: daysAgo,
-        colors: colorPool,
-        sizes: hasSizes ? ['S','M','L'] : null,
-        description: `The ${name} brings a considered, tactile presence to any room. Crafted from sustainably sourced materials with close attention to grain, weight, and finish, it pairs a quiet silhouette with details that reward a second look — designed to soften with use and age well over years, not seasons.`,
-        details: [
-          'Solid hardwood frame with hand-finished joinery',
-          'Removable, machine-washable covers where applicable',
-          'Ships flat-packed with tool-free assembly',
-          '1-year workmanship warranty',
-        ],
-        images: [id, id + 1000, id + 2000],
+        colors: colorPool, sizes: hasSizes ? ['S','M','L'] : null,
+        description: `The ${name} brings a considered, tactile presence to any room. Crafted from sustainably sourced materials with close attention to grain, weight, and finish — designed to soften with use and age well over years, not seasons.`,
+        details: ['Solid hardwood frame with hand-finished joinery','Removable, machine-washable covers where applicable','Ships flat-packed with tool-free assembly','1-year workmanship warranty'],
+        images: imgs,
       });
       id++;
     });
@@ -266,12 +157,46 @@ const COLOR_HEX = {
 };
 
 /* ============================================================
+   PRODUCT IMAGE COMPONENT (real photos)
+   ============================================================ */
+function ProductImg({ src, alt, style = {}, className = '' }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  return (
+    <div style={{ position:'relative', width:'100%', height:'100%', background:'#EDE7DA', overflow:'hidden', ...style }}>
+      {!loaded && !error && (
+        <div style={{
+          position:'absolute', inset:0,
+          background:'linear-gradient(90deg,#EDE7DA 25%,#F5F0E6 50%,#EDE7DA 75%)',
+          backgroundSize:'200% 100%', animation:'shimmer 1.5s infinite',
+        }} />
+      )}
+      {!error ? (
+        <img
+          src={src}
+          alt={alt}
+          className={className}
+          onLoad={() => setLoaded(true)}
+          onError={() => setError(true)}
+          style={{
+            width:'100%', height:'100%', objectFit:'cover', display:'block',
+            opacity: loaded ? 1 : 0, transition:'opacity 0.4s ease',
+          }}
+        />
+      ) : (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#A39B8C', fontSize:13, fontFamily:'Inter,sans-serif' }}>
+          No image
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    CART CONTEXT
    ============================================================ */
-
 const CartContext = createContext(null);
 const useCart = () => useContext(CartContext);
-
 const TAX_RATE = 0.08;
 const FREE_SHIPPING_THRESHOLD = 200;
 const SHIPPING_FLAT = 12;
@@ -279,66 +204,51 @@ const SHIPPING_FLAT = 12;
 function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [toast, setToast] = useState(null);
+  const [wishlist, setWishlist] = useState([]);
 
-  const showToast = useCallback((message) => {
-    setToast({ message, id: Date.now() });
-  }, []);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2400);
-    return () => clearTimeout(t);
-  }, [toast]);
+  const showToast = useCallback((message) => setToast({ message, id: Date.now() }), []);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t); }, [toast]);
 
   const addItem = useCallback((product, options = {}) => {
     const { color, size, quantity = 1 } = options;
-    setItems((prev) => {
-      const lineId = `${product.id}-${color || 'default'}-${size || 'default'}`;
-      const existing = prev.find((i) => i.lineId === lineId);
-      if (existing) {
-        return prev.map((i) => i.lineId === lineId ? { ...i, quantity: i.quantity + quantity } : i);
-      }
-      return [...prev, { lineId, productId: product.id, name: product.name, price: product.price, category: product.category, color: color || null, size: size || null, quantity }];
+    setItems(prev => {
+      const lineId = `${product.id}-${color||'default'}-${size||'default'}`;
+      const existing = prev.find(i => i.lineId === lineId);
+      if (existing) return prev.map(i => i.lineId === lineId ? {...i, quantity: i.quantity + quantity} : i);
+      return [...prev, { lineId, productId: product.id, name: product.name, price: product.price, category: product.category, color: color||null, size: size||null, quantity, image: product.images[0] }];
     });
     showToast(`Added ${product.name} to your cart`);
   }, [showToast]);
 
-  const removeItem = useCallback((lineId) => setItems((prev) => prev.filter((i) => i.lineId !== lineId)), []);
-  const updateQuantity = useCallback((lineId, quantity) => {
-    setItems((prev) => {
-      if (quantity <= 0) return prev.filter((i) => i.lineId !== lineId);
-      return prev.map((i) => (i.lineId === lineId ? { ...i, quantity } : i));
-    });
-  }, []);
+  const removeItem = useCallback((lineId) => setItems(prev => prev.filter(i => i.lineId !== lineId)), []);
+  const updateQuantity = useCallback((lineId, quantity) => setItems(prev => quantity <= 0 ? prev.filter(i => i.lineId !== lineId) : prev.map(i => i.lineId === lineId ? {...i, quantity} : i)), []);
   const clearCart = useCallback(() => setItems([]), []);
+  const toggleWishlist = useCallback((id) => setWishlist(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]), []);
 
-  const subtotal = useMemo(() => items.reduce((sum, i) => sum + i.price * i.quantity, 0), [items]);
-  const itemCount = useMemo(() => items.reduce((sum, i) => sum + i.quantity, 0), [items]);
+  const subtotal = useMemo(() => items.reduce((s, i) => s + i.price * i.quantity, 0), [items]);
+  const itemCount = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items]);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, subtotal, itemCount, toast, showToast }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, subtotal, itemCount, toast, showToast, wishlist, toggleWishlist }}>
       {children}
     </CartContext.Provider>
   );
 }
 
 /* ============================================================
-   SHARED UI PRIMITIVES
+   SHARED UI
    ============================================================ */
-
 function StarRating({ rating, size = 14, showNumber = true }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:5 }}>
       <div style={{ display:'flex', gap:1 }}>
-        {[1,2,3,4,5].map((n) => (
-          <Star key={n} size={size}
-            fill={n <= Math.round(rating) ? '#B5562C' : 'none'}
-            stroke={n <= Math.round(rating) ? '#B5562C' : '#C9C2B6'}
-            strokeWidth={1.5}
-          />
+        {[1,2,3,4,5].map(n => (
+          <svg key={n} width={size} height={size} viewBox="0 0 24 24" fill={n <= Math.round(rating) ? '#B5562C' : 'none'} stroke={n <= Math.round(rating) ? '#B5562C' : '#C9C2B6'} strokeWidth="1.5">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
         ))}
       </div>
-      {showNumber && <span style={{ fontSize:12.5, color:'#8C8579' }}>{rating.toFixed(1)}</span>}
+      {showNumber && <span style={{ fontSize:12.5, color:'#8C8579', fontFamily:'Inter,sans-serif' }}>{rating.toFixed(1)}</span>}
     </div>
   );
 }
@@ -347,93 +257,43 @@ function Price({ price, originalPrice, size = 'md' }) {
   const sizes = { sm:14, md:16, lg:24, xl:32 };
   return (
     <div style={{ display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap' }}>
-      <span style={{ fontSize:sizes[size], fontWeight:600, color:'#1C1B19' }}>${price.toLocaleString()}</span>
-      {originalPrice && (
-        <span style={{ fontSize:sizes[size]*0.7, color:'#B0A99C', textDecoration:'line-through' }}>
-          ${originalPrice.toLocaleString()}
-        </span>
-      )}
+      <span style={{ fontSize:sizes[size], fontWeight:600, color:'#1C1B19', fontFamily:'Inter,sans-serif' }}>${price.toLocaleString()}</span>
+      {originalPrice && <span style={{ fontSize:sizes[size]*0.7, color:'#B0A99C', textDecoration:'line-through', fontFamily:'Inter,sans-serif' }}>${originalPrice.toLocaleString()}</span>}
     </div>
   );
 }
 
 function Badge({ children, tone = 'default' }) {
-  const tones = {
-    default:{ bg:'#EDE7DA', color:'#6B5D4F' },
-    sale:{ bg:'#B5562C', color:'#FFF' },
-    new:{ bg:'#3D4A3D', color:'#FFF' },
-    out:{ bg:'#F2EDE4', color:'#A39B8C' },
-  };
+  const tones = { default:{bg:'#EDE7DA',color:'#6B5D4F'}, sale:{bg:'#B5562C',color:'#FFF'}, new:{bg:'#3D4A3D',color:'#FFF'}, out:{bg:'#F2EDE4',color:'#A39B8C'} };
   const t = tones[tone];
-  return (
-    <span style={{
-      display:'inline-flex', alignItems:'center', padding:'4px 9px',
-      fontSize:11, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase',
-      borderRadius:4, background:t.bg, color:t.color,
-    }}>
-      {children}
-    </span>
-  );
+  return <span style={{ display:'inline-flex', alignItems:'center', padding:'4px 9px', fontSize:11, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', borderRadius:4, background:t.bg, color:t.color, fontFamily:'Inter,sans-serif' }}>{children}</span>;
 }
 
-function Button({ children, variant='primary', size='md', onClick, disabled, style, type='button', full }) {
-  const base = {
-    fontWeight:600, borderRadius:6, border:'1.5px solid transparent',
-    cursor:disabled ? 'not-allowed' : 'pointer', transition:'all 0.18s ease',
-    display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
-    opacity:disabled ? 0.5 : 1, width:full ? '100%' : 'auto', letterSpacing:'0.01em',
-  };
-  const sizes = {
-    sm:{ padding:'8px 14px', fontSize:13 },
-    md:{ padding:'12px 22px', fontSize:14.5 },
-    lg:{ padding:'15px 30px', fontSize:15.5 },
-  };
-  const variants = {
-    primary:{ background:'#1C1B19', color:'#FAF7F2', borderColor:'#1C1B19' },
-    accent:{ background:'#B5562C', color:'#FFF', borderColor:'#B5562C' },
-    secondary:{ background:'transparent', color:'#1C1B19', borderColor:'#1C1B19' },
-    ghost:{ background:'transparent', color:'#6B5D4F', borderColor:'transparent' },
-    light:{ background:'#FFFFFF', color:'#1C1B19', borderColor:'#E4DCC9' },
-  };
+function Button({ children, variant = 'primary', size = 'md', onClick, disabled, style, type = 'button', full }) {
+  const base = { fontFamily:'Inter,sans-serif', fontWeight:600, borderRadius:6, border:'1.5px solid transparent', cursor:disabled?'not-allowed':'pointer', transition:'all 0.18s ease', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8, opacity:disabled?0.5:1, width:full?'100%':'auto' };
+  const sizes = { sm:{padding:'8px 14px',fontSize:13}, md:{padding:'12px 22px',fontSize:14.5}, lg:{padding:'15px 30px',fontSize:15.5} };
+  const variants = { primary:{background:'#1C1B19',color:'#FAF7F2',borderColor:'#1C1B19'}, accent:{background:'#B5562C',color:'#FFF',borderColor:'#B5562C'}, secondary:{background:'transparent',color:'#1C1B19',borderColor:'#1C1B19'}, ghost:{background:'transparent',color:'#6B5D4F',borderColor:'transparent'}, light:{background:'#FFFFFF',color:'#1C1B19',borderColor:'#E4DCC9'} };
   return (
-    <button type={type} onClick={disabled ? undefined : onClick}
-      onMouseEnter={(e) => {
-        if (disabled) return;
-        if (variant==='primary') e.currentTarget.style.background='#3D3936';
-        if (variant==='accent') e.currentTarget.style.background='#9A4A26';
-        if (variant==='secondary') { e.currentTarget.style.background='#1C1B19'; e.currentTarget.style.color='#FAF7F2'; }
-      }}
-      onMouseLeave={(e) => {
-        if (disabled) return;
-        if (variant==='primary') e.currentTarget.style.background='#1C1B19';
-        if (variant==='accent') e.currentTarget.style.background='#B5562C';
-        if (variant==='secondary') { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#1C1B19'; }
-      }}
+    <button type={type} onClick={disabled?undefined:onClick}
+      onMouseEnter={e => { if(disabled) return; if(variant==='primary') e.currentTarget.style.background='#3D3936'; if(variant==='accent') e.currentTarget.style.background='#9A4A26'; if(variant==='secondary'){e.currentTarget.style.background='#1C1B19';e.currentTarget.style.color='#FAF7F2';} }}
+      onMouseLeave={e => { if(disabled) return; if(variant==='primary') e.currentTarget.style.background=variants.primary.background; if(variant==='accent') e.currentTarget.style.background=variants.accent.background; if(variant==='secondary'){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#1C1B19';} }}
       style={{ ...base, ...sizes[size], ...variants[variant], ...style }}
-    >
-      {children}
-    </button>
+    >{children}</button>
   );
 }
 
 function Skeleton({ width='100%', height=16, radius=4, style }) {
-  return (
-    <div style={{
-      width, height, borderRadius:radius,
-      background:'linear-gradient(90deg,#EDE7DA 25%,#F5F0E6 50%,#EDE7DA 75%)',
-      backgroundSize:'200% 100%', animation:'shimmer 1.5s infinite', ...style,
-    }} />
-  );
+  return <div style={{ width, height, borderRadius:radius, background:'linear-gradient(90deg,#EDE7DA 25%,#F5F0E6 50%,#EDE7DA 75%)', backgroundSize:'200% 100%', animation:'shimmer 1.5s infinite', ...style }} />;
 }
 
 function EmptyState({ icon: Icon, title, message, action }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'64px 24px', textAlign:'center', gap:14 }}>
       <div style={{ width:64, height:64, borderRadius:'50%', background:'#EDE7DA', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:6 }}>
-        <Icon size={28} color="#A39B8C"/>
+        <Icon size={28} color="#A39B8C" />
       </div>
-      <h3 style={{ fontFamily:'Fraunces, serif', fontSize:22, fontWeight:600, color:'#1C1B19', margin:0 }}>{title}</h3>
-      <p style={{ fontSize:14.5, color:'#8C8579', maxWidth:360, margin:0, lineHeight:1.6 }}>{message}</p>
+      <h3 style={{ fontFamily:'Fraunces,serif', fontSize:22, fontWeight:600, color:'#1C1B19', margin:0 }}>{title}</h3>
+      <p style={{ fontFamily:'Inter,sans-serif', fontSize:14.5, color:'#8C8579', maxWidth:360, margin:0, lineHeight:1.6 }}>{message}</p>
       {action}
     </div>
   );
@@ -442,69 +302,48 @@ function EmptyState({ icon: Icon, title, message, action }) {
 /* ============================================================
    PRODUCT CARD
    ============================================================ */
-
 function ProductCard({ product, onNavigate }) {
-  const { addItem } = useCart();
+  const { addItem, wishlist, toggleWishlist } = useCart();
   const [hovered, setHovered] = useState(false);
   const discount = product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : null;
+  const isWished = wishlist.includes(product.id);
 
-  const handleAdd = (e) => {
-    e.stopPropagation();
-    addItem(product, { color: product.colors?.[0], size: product.sizes?.[1] });
-  };
+  const handleAdd = (e) => { e.stopPropagation(); addItem(product, { color: product.colors?.[0], size: product.sizes?.[1]||null, quantity:1 }); };
 
   return (
     <div
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       onClick={() => onNavigate('product', product.id)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        borderRadius:10, overflow:'hidden', background:'#FFFFFF',
-        border:'1px solid #EFE9DD', cursor:'pointer',
-        transition:'box-shadow 0.25s ease, transform 0.25s ease',
-        boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.1)' : 'none',
-        transform: hovered ? 'translateY(-3px)' : 'none',
-      }}
+      style={{ display:'flex', flexDirection:'column', cursor:'pointer', borderRadius:10, overflow:'hidden', background:'#FFFFFF', border:'1px solid #EFE9DD', transform:hovered?'translateY(-4px)':'translateY(0)', boxShadow:hovered?'0 12px 28px -8px rgba(28,27,25,0.16)':'0 1px 2px rgba(28,27,25,0.03)', transition:'transform 0.25s ease, box-shadow 0.25s ease', animation:'fadeIn 0.4s ease' }}
     >
       <div style={{ position:'relative', aspectRatio:'1/1', overflow:'hidden' }}>
-        <ProductImage id={product.id} alt={product.name} className="prod-img" />
-        <style>{`.prod-img { width:100%; height:100%; }`}</style>
-        <div style={{ position:'absolute', top:10, left:10, display:'flex', flexDirection:'column', gap:4 }}>
-          {discount && <Badge tone="sale">−{discount}%</Badge>}
+        <ProductImg src={product.images[0]} alt={product.name} style={{ transform:hovered?'scale(1.06)':'scale(1)', transition:'transform 0.5s ease' }} />
+        <div style={{ position:'absolute', top:10, left:10, display:'flex', gap:6, flexWrap:'wrap' }}>
           {product.isNew && <Badge tone="new">New</Badge>}
+          {discount && <Badge tone="sale">-{discount}%</Badge>}
           {!product.inStock && <Badge tone="out">Sold out</Badge>}
         </div>
         <button
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); toggleWishlist(product.id); }}
           aria-label="Save to wishlist"
-          style={{
-            position:'absolute', top:10, right:10, width:32, height:32, borderRadius:'50%',
-            border:'none', background:'rgba(255,255,255,0.9)', display:'flex', alignItems:'center',
-            justifyContent:'center', cursor:'pointer', opacity: hovered ? 1 : 0, transition:'opacity 0.2s ease',
-          }}
+          style={{ position:'absolute', top:10, right:10, width:32, height:32, borderRadius:'50%', border:'none', background:'rgba(255,255,255,0.9)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', opacity:hovered||isWished?1:0, transition:'opacity 0.2s ease' }}
         >
-          <Heart size={15} color="#1C1B19"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill={isWished?'#B5562C':'none'} stroke={isWished?'#B5562C':'#1C1B19'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
-        <div style={{
-          position:'absolute', bottom:0, left:0, right:0, padding:10,
-          transform: hovered ? 'translateY(0)' : 'translateY(110%)',
-          transition:'transform 0.25s ease',
-        }}>
+        <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:10, transform:hovered?'translateY(0)':'translateY(110%)', transition:'transform 0.25s ease' }}>
           <Button variant="primary" size="sm" full disabled={!product.inStock} onClick={handleAdd}>
-            <ShoppingBag size={14}/>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
             {product.inStock ? 'Add to cart' : 'Unavailable'}
           </Button>
         </div>
       </div>
       <div style={{ padding:'14px 14px 16px' }}>
-        <div style={{ fontSize:11.5, color:'#A39B8C', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>
-          {CATEGORIES.find((c) => c.id === product.category)?.name}
+        <div style={{ fontSize:11.5, color:'#A39B8C', fontFamily:'Inter,sans-serif', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>
+          {CATEGORIES.find(c => c.id === product.category)?.name}
         </div>
-        <h3 style={{ fontFamily:'Fraunces, serif', fontSize:16.5, fontWeight:600, color:'#1C1B19', margin:'0 0 6px', lineHeight:1.3 }}>
-          {product.name}
-        </h3>
-        <div style={{ marginBottom:8 }}><StarRating rating={product.rating}/></div>
-        <Price price={product.price} originalPrice={product.originalPrice}/>
+        <h3 style={{ fontFamily:'Fraunces,serif', fontSize:16.5, fontWeight:600, color:'#1C1B19', margin:'0 0 6px', lineHeight:1.3 }}>{product.name}</h3>
+        <div style={{ marginBottom:8 }}><StarRating rating={product.rating} /></div>
+        <Price price={product.price} originalPrice={product.originalPrice} />
       </div>
     </div>
   );
@@ -513,12 +352,12 @@ function ProductCard({ product, onNavigate }) {
 function ProductCardSkeleton() {
   return (
     <div style={{ borderRadius:10, overflow:'hidden', background:'#FFFFFF', border:'1px solid #EFE9DD' }}>
-      <Skeleton height={0} style={{ paddingBottom:'100%' }} radius={0}/>
+      <Skeleton height={0} style={{ paddingBottom:'100%' }} radius={0} />
       <div style={{ padding:14 }}>
-        <Skeleton width="40%" height={11} style={{ marginBottom:8 }}/>
-        <Skeleton width="80%" height={18} style={{ marginBottom:10 }}/>
-        <Skeleton width="55%" height={13} style={{ marginBottom:10 }}/>
-        <Skeleton width="35%" height={18}/>
+        <Skeleton width="40%" height={11} style={{ marginBottom:8 }} />
+        <Skeleton width="80%" height={18} style={{ marginBottom:10 }} />
+        <Skeleton width="55%" height={13} style={{ marginBottom:10 }} />
+        <Skeleton width="35%" height={18} />
       </div>
     </div>
   );
@@ -527,7 +366,6 @@ function ProductCardSkeleton() {
 /* ============================================================
    HEADER
    ============================================================ */
-
 function Header({ onNavigate, currentPage, searchQuery, setSearchQuery, onOpenCart }) {
   const { itemCount } = useCart();
   const [searchFocused, setSearchFocused] = useState(false);
@@ -538,93 +376,43 @@ function Header({ onNavigate, currentPage, searchQuery, setSearchQuery, onOpenCa
       <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 24px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:72, gap:24 }}>
           <div style={{ display:'flex', alignItems:'center', gap:32 }}>
-            <button onClick={() => onNavigate('home')} style={{ fontFamily:'Fraunces, serif', fontSize:24, fontWeight:700, color:'#1C1B19', background:'none', border:'none', cursor:'pointer', padding:0 }}>
+            <button onClick={() => onNavigate('home')} style={{ fontFamily:'Fraunces,serif', fontSize:24, fontWeight:700, color:'#1C1B19', background:'none', border:'none', cursor:'pointer', padding:0 }}>
               Atelier<span style={{ color:'#B5562C' }}>Nova</span>
             </button>
             <nav style={{ display:'flex', gap:24 }} className="desktop-nav">
-              {[{ id:'home', label:'Home' }, { id:'products', label:'Shop all' }].map((l) => (
-                <button key={l.id} onClick={() => onNavigate(l.id)} style={{
-                  fontSize:14.5, fontWeight:500,
-                  color: currentPage === l.id ? '#1C1B19' : '#8C8579',
-                  background:'none', border:'none', cursor:'pointer', padding:'4px 0',
-                  borderBottom: currentPage === l.id ? '2px solid #B5562C' : '2px solid transparent',
-                }}>
-                  {l.label}
-                </button>
+              {[{id:'home',label:'Home'},{id:'products',label:'Shop all'}].map(l => (
+                <button key={l.id} onClick={() => onNavigate(l.id)} style={{ fontFamily:'Inter,sans-serif', fontSize:14.5, fontWeight:500, color:currentPage===l.id?'#1C1B19':'#8C8579', background:'none', border:'none', cursor:'pointer', padding:'4px 0', borderBottom:currentPage===l.id?'2px solid #B5562C':'2px solid transparent', transition:'color 0.15s ease' }}>{l.label}</button>
               ))}
             </nav>
           </div>
-
           <div style={{ flex:1, maxWidth:420, display:'flex', alignItems:'center' }} className="search-wrap">
-            <div style={{
-              display:'flex', alignItems:'center', width:'100%', gap:10,
-              background:'#FFFFFF', border:`1.5px solid ${searchFocused ? '#1C1B19' : '#EFE9DD'}`,
-              borderRadius:8, padding:'9px 14px', transition:'border-color 0.15s ease',
-            }}>
-              <Search size={16} color="#A39B8C"/>
-              <input
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); if (currentPage !== 'products') onNavigate('products'); }}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                placeholder="Search chairs, lamps, rugs…"
-                style={{ border:'none', outline:'none', fontSize:14, width:'100%', background:'transparent', color:'#1C1B19' }}
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} style={{ background:'none', border:'none', cursor:'pointer', display:'flex' }}>
-                  <X size={14} color="#A39B8C"/>
-                </button>
-              )}
+            <div style={{ display:'flex', alignItems:'center', width:'100%', gap:10, background:'#FFFFFF', border:`1.5px solid ${searchFocused?'#1C1B19':'#EFE9DD'}`, borderRadius:8, padding:'9px 14px', transition:'border-color 0.15s ease' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A39B8C" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input value={searchQuery} onChange={e => { setSearchQuery(e.target.value); if(currentPage!=='products') onNavigate('products'); }} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} placeholder="Search chairs, lamps, rugs…" style={{ border:'none', outline:'none', fontFamily:'Inter,sans-serif', fontSize:14, width:'100%', background:'transparent', color:'#1C1B19' }} />
+              {searchQuery && <button onClick={() => setSearchQuery('')} style={{ background:'none', border:'none', cursor:'pointer', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A39B8C" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
             </div>
           </div>
-
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <button
-              onClick={onOpenCart}
-              style={{
-                position:'relative', width:42, height:42, borderRadius:8, border:'1.5px solid #EFE9DD',
-                background:'#FFFFFF', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor='#1C1B19'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor='#EFE9DD'}
-            >
-              <ShoppingBag size={18} color="#1C1B19"/>
-              {itemCount > 0 && (
-                <span style={{
-                  position:'absolute', top:-6, right:-6, minWidth:20, height:20, borderRadius:10,
-                  background:'#B5562C', color:'#FFF', fontSize:11, fontWeight:700,
-                  display:'flex', alignItems:'center', justifyContent:'center', padding:'0 5px',
-                }}>
-                  {itemCount}
-                </span>
-              )}
+            <button onClick={onOpenCart} aria-label="Open cart" style={{ position:'relative', width:42, height:42, borderRadius:8, border:'1.5px solid #EFE9DD', background:'#FFFFFF', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'border-color 0.15s ease' }} onMouseEnter={e => e.currentTarget.style.borderColor='#1C1B19'} onMouseLeave={e => e.currentTarget.style.borderColor='#EFE9DD'}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C1B19" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              {itemCount > 0 && <span style={{ position:'absolute', top:-6, right:-6, minWidth:20, height:20, borderRadius:10, background:'#B5562C', color:'#FFF', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Inter,sans-serif', padding:'0 5px' }}>{itemCount}</span>}
             </button>
-            <button
-              className="mobile-menu-btn"
-              onClick={() => setMobileMenuOpen((v) => !v)}
-              style={{ display:'none', width:42, height:42, borderRadius:8, border:'1.5px solid #EFE9DD', background:'#FFFFFF', cursor:'pointer', alignItems:'center', justifyContent:'center' }}
-            >
-              <SlidersHorizontal size={17} color="#1C1B19"/>
+            <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(v=>!v)} style={{ display:'none', width:42, height:42, borderRadius:8, border:'1.5px solid #EFE9DD', background:'#FFFFFF', cursor:'pointer', alignItems:'center', justifyContent:'center' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1C1B19" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
             </button>
           </div>
         </div>
       </div>
       {mobileMenuOpen && (
-        <div style={{ borderTop:'1px solid #EFE9DD', padding:'12px 24px', display:'flex', flexDirection:'column', gap:10 }}>
-          {[{ id:'home', label:'Home' }, { id:'products', label:'Shop all' }].map((l) => (
-            <button key={l.id} onClick={() => { onNavigate(l.id); setMobileMenuOpen(false); }}
-              style={{ textAlign:'left', fontSize:15, fontWeight:500, color:'#1C1B19', background:'none', border:'none', cursor:'pointer', padding:'8px 0' }}>
-              {l.label}
-            </button>
+        <div style={{ borderTop:'1px solid #EFE9DD', padding:'12px 24px', display:'flex', flexDirection:'column', gap:10 }} className="mobile-nav-panel">
+          {[{id:'home',label:'Home'},{id:'products',label:'Shop all'}].map(l => (
+            <button key={l.id} onClick={() => { onNavigate(l.id); setMobileMenuOpen(false); }} style={{ textAlign:'left', fontFamily:'Inter,sans-serif', fontSize:15, fontWeight:500, color:'#1C1B19', background:'none', border:'none', cursor:'pointer', padding:'8px 0' }}>{l.label}</button>
           ))}
         </div>
       )}
       <style>{`
-        @media (max-width:860px) {
-          .desktop-nav { display:none !important; }
-          .search-wrap { max-width:none !important; flex:1; }
-          .mobile-menu-btn { display:flex !important; }
-        }
+        @media (max-width: 860px) { .desktop-nav{display:none!important;} .search-wrap{max-width:none!important;flex:1;} .mobile-menu-btn{display:flex!important;} }
+        @media (min-width: 861px) { .mobile-nav-panel{display:none!important;} }
       `}</style>
     </header>
   );
@@ -633,7 +421,6 @@ function Header({ onNavigate, currentPage, searchQuery, setSearchQuery, onOpenCa
 /* ============================================================
    CART DRAWER
    ============================================================ */
-
 function CartDrawer({ open, onClose, onNavigate }) {
   const { items, removeItem, updateQuantity, subtotal } = useCart();
   const shipping = items.length === 0 ? 0 : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT);
@@ -642,59 +429,55 @@ function CartDrawer({ open, onClose, onNavigate }) {
 
   return (
     <>
-      <div onClick={onClose} style={{
-        position:'fixed', inset:0, background:'rgba(28,27,25,0.35)', zIndex:50,
-        opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transition:'opacity 0.25s ease',
-      }} />
-      <div style={{
-        position:'fixed', top:0, right:0, height:'100vh', width:'min(440px,100vw)',
-        background:'#FAF7F2', zIndex:51, display:'flex', flexDirection:'column',
-        transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition:'transform 0.3s cubic-bezier(0.32,0.72,0,1)',
-        boxShadow:'-8px 0 30px rgba(0,0,0,0.08)',
-      }}>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(28,27,25,0.35)', zIndex:50, opacity:open?1:0, pointerEvents:open?'auto':'none', transition:'opacity 0.25s ease' }} />
+      <div style={{ position:'fixed', top:0, right:0, height:'100vh', width:'min(440px,100vw)', background:'#FAF7F2', zIndex:51, display:'flex', flexDirection:'column', transform:open?'translateX(0)':'translateX(100%)', transition:'transform 0.3s cubic-bezier(0.32,0.72,0,1)', boxShadow:'-8px 0 30px rgba(0,0,0,0.08)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'22px 24px', borderBottom:'1px solid #EFE9DD' }}>
-          <h2 style={{ fontFamily:'Fraunces, serif', fontSize:21, fontWeight:700, margin:0, color:'#1C1B19' }}>
-            Your cart {items.length > 0 && <span style={{ color:'#A39B8C', fontSize:15, fontWeight:500 }}>({items.length})</span>}
-          </h2>
-          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', padding:4 }}>
-            <X size={20} color="#1C1B19"/>
-          </button>
+          <h2 style={{ fontFamily:'Fraunces,serif', fontSize:21, fontWeight:700, margin:0, color:'#1C1B19' }}>Your cart {items.length>0 && <span style={{ color:'#A39B8C', fontFamily:'Inter,sans-serif', fontSize:15, fontWeight:500 }}>({items.length})</span>}</h2>
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', padding:4 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1B19" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
-
         {items.length === 0 ? (
           <div style={{ flex:1, display:'flex', alignItems:'center' }}>
-            <EmptyState icon={ShoppingBag} title="Your cart is empty"
-              message="Items you add will show up here. Start browsing to find something you'll love."
-              action={<Button variant="primary" onClick={() => { onClose(); onNavigate('products'); }}>Browse products</Button>}
-            />
+            <EmptyState icon={({size,color}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>} title="Your cart is empty" message="Items you add will show up here. Start browsing to find something you'll love." action={<Button variant="primary" onClick={() => { onClose(); onNavigate('products'); }}>Browse products</Button>} />
           </div>
         ) : (
           <>
             <div style={{ flex:1, overflowY:'auto', padding:'8px 24px' }}>
-              {items.map((item) => (
-                <CartLineItem key={item.lineId} item={item}
-                  onRemove={() => removeItem(item.lineId)}
-                  onUpdateQty={(q) => updateQuantity(item.lineId, q)}
-                />
+              {items.map(item => (
+                <div key={item.lineId} style={{ display:'flex', gap:14, padding:'16px 0', borderBottom:'1px solid #F2EDE4' }}>
+                  <div style={{ width:76, height:76, borderRadius:8, overflow:'hidden', flexShrink:0 }}>
+                    <ProductImg src={item.image} alt={item.name} />
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
+                      <h4 style={{ fontFamily:'Fraunces,serif', fontSize:15, fontWeight:600, color:'#1C1B19', margin:0, lineHeight:1.3 }}>{item.name}</h4>
+                      <button onClick={() => removeItem(item.lineId)} style={{ background:'none', border:'none', cursor:'pointer', padding:2, flexShrink:0 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A39B8C" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+                    </div>
+                    <div style={{ fontSize:12.5, color:'#A39B8C', fontFamily:'Inter,sans-serif', margin:'3px 0 8px' }}>{item.color&&`${item.color}`}{item.color&&item.size&&' · '}{item.size&&`Size ${item.size}`}</div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <div style={{ display:'flex', alignItems:'center', border:'1px solid #EFE9DD', borderRadius:6 }}>
+                        <button onClick={() => updateQuantity(item.lineId, item.quantity-1)} style={{ width:28, height:28, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>−</button>
+                        <span style={{ width:28, textAlign:'center', fontFamily:'Inter,sans-serif', fontSize:13.5, fontWeight:600 }}>{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.lineId, item.quantity+1)} style={{ width:28, height:28, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>
+                      </div>
+                      <span style={{ fontFamily:'Inter,sans-serif', fontSize:14.5, fontWeight:600, color:'#1C1B19' }}>${(item.price*item.quantity).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
             <div style={{ borderTop:'1px solid #EFE9DD', padding:'20px 24px', background:'#FFFFFF' }}>
-              <SummaryRow label="Subtotal" value={subtotal}/>
-              <SummaryRow label="Shipping" value={shipping} freeLabel={shipping === 0}/>
-              <SummaryRow label="Estimated tax" value={tax}/>
-              {subtotal > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
-                <div style={{ fontSize:12.5, color:'#6B5D4F', background:'#F2EDE4', borderRadius:6, padding:'8px 10px', margin:'8px 0' }}>
-                  Add ${(FREE_SHIPPING_THRESHOLD - subtotal).toFixed(2)} more for free shipping
+              {[['Subtotal', subtotal], ['Shipping', shipping], ['Estimated tax', tax]].map(([label, val]) => (
+                <div key={label} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', fontFamily:'Inter,sans-serif', fontSize:13.5, color:'#6B5D4F' }}>
+                  <span>{label}</span>
+                  <span style={{ color: label==='Shipping'&&val===0?'#3D4A3D':'#1C1B19', fontWeight: label==='Shipping'&&val===0?600:500 }}>{label==='Shipping'&&val===0?'Free':`$${val.toFixed(2)}`}</span>
                 </div>
-              )}
+              ))}
+              {subtotal>0&&subtotal<FREE_SHIPPING_THRESHOLD && <div style={{ fontSize:12.5, color:'#6B5D4F', background:'#F2EDE4', borderRadius:6, padding:'8px 10px', margin:'8px 0', fontFamily:'Inter,sans-serif' }}>Add ${(FREE_SHIPPING_THRESHOLD-subtotal).toFixed(2)} more for free shipping</div>}
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', margin:'14px 0 18px', paddingTop:12, borderTop:'1px solid #EFE9DD' }}>
-                <span style={{ fontSize:15, fontWeight:600, color:'#1C1B19' }}>Total</span>
-                <span style={{ fontFamily:'Fraunces, serif', fontSize:24, fontWeight:700, color:'#1C1B19' }}>${total.toFixed(2)}</span>
+                <span style={{ fontFamily:'Inter,sans-serif', fontSize:15, fontWeight:600, color:'#1C1B19' }}>Total</span>
+                <span style={{ fontFamily:'Fraunces,serif', fontSize:24, fontWeight:700, color:'#1C1B19' }}>${total.toFixed(2)}</span>
               </div>
-              <Button variant="accent" full size="lg" onClick={() => { onClose(); onNavigate('checkout'); }}>
-                Continue to checkout <ArrowRight size={16}/>
-              </Button>
+              <Button variant="accent" full size="lg" onClick={() => { onClose(); onNavigate('checkout'); }}>Continue to checkout →</Button>
             </div>
           </>
         )}
@@ -703,62 +486,16 @@ function CartDrawer({ open, onClose, onNavigate }) {
   );
 }
 
-function SummaryRow({ label, value, freeLabel }) {
-  return (
-    <div style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', fontSize:13.5, color:'#6B5D4F' }}>
-      <span>{label}</span>
-      <span style={{ color: freeLabel ? '#3D4A3D' : '#1C1B19', fontWeight: freeLabel ? 600 : 500 }}>
-        {freeLabel ? 'Free' : `$${value.toFixed(2)}`}
-      </span>
-    </div>
-  );
-}
-
-function CartLineItem({ item, onRemove, onUpdateQty }) {
-  return (
-    <div style={{ display:'flex', gap:14, padding:'16px 0', borderBottom:'1px solid #F2EDE4' }}>
-      <div style={{ width:76, height:76, borderRadius:8, flexShrink:0, overflow:'hidden' }}>
-        <ProductImage id={item.productId} alt={item.name} className="cart-img"/>
-        <style>{`.cart-img { width:100%; height:100%; }`}</style>
-      </div>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
-          <h4 style={{ fontFamily:'Fraunces, serif', fontSize:15, fontWeight:600, color:'#1C1B19', margin:0, lineHeight:1.3 }}>{item.name}</h4>
-          <button onClick={onRemove} style={{ background:'none', border:'none', cursor:'pointer', padding:2, flexShrink:0 }}>
-            <Trash2 size={15} color="#A39B8C"/>
-          </button>
-        </div>
-        <div style={{ fontSize:12.5, color:'#A39B8C', margin:'3px 0 8px' }}>
-          {item.color && `${item.color}`}{item.color && item.size && ' · '}{item.size && `Size ${item.size}`}
-        </div>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', border:'1px solid #EFE9DD', borderRadius:6 }}>
-            <button onClick={() => onUpdateQty(item.quantity - 1)} style={{ width:28, height:28, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Minus size={13} color="#1C1B19"/>
-            </button>
-            <span style={{ width:28, textAlign:'center', fontSize:13.5, fontWeight:600 }}>{item.quantity}</span>
-            <button onClick={() => onUpdateQty(item.quantity + 1)} style={{ width:28, height:28, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Plus size={13} color="#1C1B19"/>
-            </button>
-          </div>
-          <span style={{ fontSize:14.5, fontWeight:600, color:'#1C1B19' }}>${(item.price * item.quantity).toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
+/* ============================================================
+   TOAST
+   ============================================================ */
 function Toast({ toast }) {
   return (
-    <div style={{
-      position:'fixed', bottom:24, left:'50%', zIndex:60,
-      transform:`translateX(-50%) translateY(${toast ? '0' : '20px'})`,
-      opacity: toast ? 1 : 0, transition:'all 0.25s ease', pointerEvents:'none',
-    }}>
+    <div style={{ position:'fixed', bottom:24, left:'50%', zIndex:60, transform:`translateX(-50%) translateY(${toast?'0':'20px'})`, opacity:toast?1:0, transition:'all 0.25s ease', pointerEvents:'none' }}>
       {toast && (
-        <div style={{ display:'flex', alignItems:'center', gap:10, background:'#1C1B19', color:'#FAF7F2', padding:'12px 20px', borderRadius:8, fontSize:14, boxShadow:'0 8px 24px rgba(0,0,0,0.2)', fontWeight:500 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, background:'#1C1B19', color:'#FAF7F2', padding:'12px 20px', borderRadius:8, fontFamily:'Inter,sans-serif', fontSize:14, boxShadow:'0 8px 24px rgba(0,0,0,0.2)', fontWeight:500, whiteSpace:'nowrap' }}>
           <div style={{ width:18, height:18, borderRadius:'50%', background:'#3D4A3D', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <Check size={11} color="#FFF"/>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           {toast.message}
         </div>
@@ -770,10 +507,9 @@ function Toast({ toast }) {
 /* ============================================================
    HOME PAGE
    ============================================================ */
-
 function HomePage({ onNavigate, setSelectedCategory }) {
-  const featured = PRODUCTS.filter((p) => p.isNew).slice(0, 4);
-  const onSale = PRODUCTS.filter((p) => p.originalPrice).slice(0, 4);
+  const featured = PRODUCTS.filter(p => p.isNew).slice(0, 4);
+  const onSale = PRODUCTS.filter(p => p.originalPrice).slice(0, 4);
 
   return (
     <div>
@@ -782,90 +518,85 @@ function HomePage({ onNavigate, setSelectedCategory }) {
         <div style={{ maxWidth:1320, margin:'0 auto', padding:'90px 24px 100px', display:'grid', gridTemplateColumns:'1.1fr 1fr', gap:48, alignItems:'center' }} className="hero-grid">
           <div>
             <div style={{ display:'inline-flex', alignItems:'center', gap:8, marginBottom:22 }}>
-              <div style={{ width:32, height:1, background:'#D9A05B' }}/>
-              <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#D9A05B', fontWeight:600 }}>Autumn Collection</span>
+              <div style={{ width:32, height:1, background:'#D9A05B' }} />
+              <span style={{ fontFamily:'Inter,sans-serif', fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#D9A05B', fontWeight:600 }}>Autumn Collection</span>
             </div>
-            <h1 style={{ fontFamily:'Fraunces, serif', fontSize:'clamp(40px,6vw,68px)', fontWeight:700, color:'#FAF7F2', lineHeight:1.08, margin:'0 0 22px' }}>
+            <h1 style={{ fontFamily:'Fraunces,serif', fontSize:'clamp(40px,6vw,68px)', fontWeight:700, color:'#FAF7F2', lineHeight:1.08, margin:'0 0 22px', letterSpacing:'-0.01em' }}>
               Furniture that feels like it's already yours
             </h1>
-            <p style={{ fontSize:17, color:'#C8D0C6', lineHeight:1.7, maxWidth:460, margin:'0 0 36px' }}>
+            <p style={{ fontFamily:'Inter,sans-serif', fontSize:17, color:'#C8D0C6', lineHeight:1.7, maxWidth:460, margin:'0 0 36px' }}>
               Hand-finished seating, lighting and storage made from materials that age gracefully — designed for rooms you actually live in.
             </p>
             <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
-              <Button variant="accent" size="lg" onClick={() => onNavigate('products')}>
-                Shop the collection <ArrowRight size={16}/>
-              </Button>
+              <Button variant="accent" size="lg" onClick={() => onNavigate('products')}>Shop the collection →</Button>
               <Button variant="light" size="lg" onClick={() => onNavigate('products')}>Explore categories</Button>
             </div>
           </div>
           <div style={{ position:'relative' }} className="hero-image-wrap">
             <div style={{ borderRadius:16, overflow:'hidden', aspectRatio:'4/5', boxShadow:'0 30px 60px -20px rgba(0,0,0,0.4)' }}>
-              <ProductImage id={3} alt="Featured living room" className="hero-img-fill"/>
-              <style>{`.hero-img-fill { width:100%; height:100%; }`}</style>
+              <ProductImg src={HERO_IMAGE} alt="Featured living room" style={{ height:'100%' }} />
             </div>
-            <div style={{
-              position:'absolute', bottom:-24, left:-24, background:'#FAF7F2', borderRadius:12,
-              padding:'16px 20px', boxShadow:'0 12px 30px rgba(0,0,0,0.18)', display:'flex', alignItems:'center', gap:12,
-            }} className="hero-badge">
-              <StarRating rating={4.8} size={15}/>
-              <div style={{ width:1, height:28, background:'#EFE9DD' }}/>
-              <span style={{ fontSize:13, color:'#6B5D4F', fontWeight:500 }}>2,400+ reviews</span>
+            <div style={{ position:'absolute', bottom:-24, left:-24, background:'#FAF7F2', borderRadius:12, padding:'16px 20px', boxShadow:'0 12px 30px rgba(0,0,0,0.18)', display:'flex', alignItems:'center', gap:12 }} className="hero-badge">
+              <StarRating rating={4.8} size={15} />
+              <div style={{ width:1, height:28, background:'#EFE9DD' }} />
+              <span style={{ fontFamily:'Inter,sans-serif', fontSize:13, color:'#6B5D4F', fontWeight:500 }}>2,400+ reviews</span>
             </div>
           </div>
         </div>
-        <style>{`
-          @media (max-width:900px) {
-            .hero-grid { grid-template-columns:1fr !important; padding:60px 24px 70px !important; }
-            .hero-image-wrap { order:-1; }
-            .hero-badge { display:none !important; }
-          }
-        `}</style>
+        <style>{`@media(max-width:900px){.hero-grid{grid-template-columns:1fr!important;padding:60px 24px 70px!important;}.hero-image-wrap{order:-1;}.hero-badge{display:none!important;}}`}</style>
+      </section>
+
+      {/* TRUST BADGES */}
+      <section style={{ borderBottom:'1px solid #EFE9DD', background:'#FFFFFF' }}>
+        <div style={{ maxWidth:1320, margin:'0 auto', padding:'20px 24px', display:'flex', gap:32, justifyContent:'center', flexWrap:'wrap' }}>
+          {[['🚚','Free Shipping','On orders over $100'],['↩️','Easy Returns','30-day return policy'],['🛡️','1 Year Warranty','On all products'],['🔒','Secure Checkout','Safe & encrypted']].map(([icon,title,sub]) => (
+            <div key={title} style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:20 }}>{icon}</span>
+              <div>
+                <div style={{ fontFamily:'Inter,sans-serif', fontSize:13, fontWeight:700, color:'#1C1B19' }}>{title}</div>
+                <div style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'#A39B8C' }}>{sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* CATEGORIES */}
       <section style={{ maxWidth:1320, margin:'0 auto', padding:'72px 24px' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:32, flexWrap:'wrap', gap:12 }}>
           <div>
-            <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Browse by room</span>
-            <h2 style={{ fontFamily:'Fraunces, serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>Shop by category</h2>
+            <span style={{ fontFamily:'Inter,sans-serif', fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Browse by room</span>
+            <h2 style={{ fontFamily:'Fraunces,serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>Shop by category</h2>
           </div>
-          <button onClick={() => onNavigate('products')} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', fontSize:14, fontWeight:600, color:'#1C1B19' }}>
-            View all products <ArrowRight size={15}/>
-          </button>
+          <button onClick={() => onNavigate('products')} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', fontSize:14, fontWeight:600, color:'#1C1B19' }}>View all products →</button>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:16 }} className="category-grid">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => { setSelectedCategory(cat.id); onNavigate('products'); }}
+          {CATEGORIES.map(cat => (
+            <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); onNavigate('products'); }}
               style={{ border:'none', cursor:'pointer', borderRadius:12, overflow:'hidden', position:'relative', aspectRatio:'3/4', display:'flex', alignItems:'flex-end', padding:0, transition:'transform 0.25s ease' }}
-              onMouseEnter={(e) => e.currentTarget.style.transform='translateY(-4px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform='translateY(0)'}
+              onMouseEnter={e => e.currentTarget.style.transform='translateY(-4px)'}
+              onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}
             >
-              <div style={{ position:'absolute', inset:0, background:cat.swatch, opacity:0.85 }}/>
-              <ProductImage id={cat.id.length * 17} alt={cat.name} className="cat-img"/>
-              <style>{`.cat-img { position:absolute; inset:0; width:100%; height:100%; mix-blend-mode:multiply; opacity:0.5; }`}</style>
+              <img src={CATEGORY_IMAGES[cat.id]} alt={cat.name} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+              <div style={{ position:'absolute', inset:0, background:`linear-gradient(to top, ${cat.swatch}EE 0%, ${cat.swatch}44 60%, transparent 100%)` }} />
               <div style={{ position:'relative', padding:14, textAlign:'left', width:'100%' }}>
-                <div style={{ fontFamily:'Fraunces, serif', fontSize:17, fontWeight:700, color:'#FAF7F2', marginBottom:2 }}>{cat.name}</div>
-                <div style={{ fontSize:12, color:'rgba(250,247,242,0.85)' }}>{cat.count} items</div>
+                <div style={{ fontFamily:'Fraunces,serif', fontSize:17, fontWeight:700, color:'#FAF7F2', marginBottom:2 }}>{cat.name}</div>
+                <div style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'rgba(250,247,242,0.85)' }}>{cat.count} items</div>
               </div>
             </button>
           ))}
         </div>
-        <style>{`
-          @media (max-width:1000px) { .category-grid { grid-template-columns:repeat(3,1fr) !important; } }
-          @media (max-width:600px) { .category-grid { grid-template-columns:repeat(2,1fr) !important; } }
-        `}</style>
+        <style>{`@media(max-width:1000px){.category-grid{grid-template-columns:repeat(3,1fr)!important;}}@media(max-width:600px){.category-grid{grid-template-columns:repeat(2,1fr)!important;}}`}</style>
       </section>
 
-      {/* FEATURED */}
+      {/* NEW ARRIVALS */}
       <section style={{ maxWidth:1320, margin:'0 auto', padding:'0 24px 72px' }}>
         <div style={{ marginBottom:32 }}>
-          <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Just landed</span>
-          <h2 style={{ fontFamily:'Fraunces, serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>New arrivals</h2>
+          <span style={{ fontFamily:'Inter,sans-serif', fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Just landed</span>
+          <h2 style={{ fontFamily:'Fraunces,serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>New arrivals</h2>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:20 }} className="product-grid-4">
-          {featured.map((p) => <ProductCard key={p.id} product={p} onNavigate={onNavigate}/>)}
+          {featured.map(p => <ProductCard key={p.id} product={p} onNavigate={onNavigate} />)}
         </div>
       </section>
 
@@ -873,38 +604,30 @@ function HomePage({ onNavigate, setSelectedCategory }) {
       <section style={{ maxWidth:1320, margin:'0 auto', padding:'0 24px 72px' }}>
         <div style={{ background:'#EDE7DA', borderRadius:16, overflow:'hidden', display:'grid', gridTemplateColumns:'1fr 1fr', alignItems:'stretch' }} className="promo-grid">
           <div style={{ padding:'56px 56px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
-            <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600, marginBottom:12 }}>Limited time</span>
-            <h3 style={{ fontFamily:'Fraunces, serif', fontSize:34, fontWeight:700, color:'#1C1B19', margin:'0 0 14px', lineHeight:1.2 }}>
-              Up to 30% off select lighting & textiles
-            </h3>
-            <p style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.7, margin:'0 0 28px', maxWidth:380 }}>
-              Refresh your space for less. Sale ends when our current stock runs out — first come, first served.
-            </p>
+            <span style={{ fontFamily:'Inter,sans-serif', fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600, marginBottom:12 }}>Limited time</span>
+            <h3 style={{ fontFamily:'Fraunces,serif', fontSize:34, fontWeight:700, color:'#1C1B19', margin:'0 0 14px', lineHeight:1.2 }}>Up to 30% off select lighting & textiles</h3>
+            <p style={{ fontFamily:'Inter,sans-serif', fontSize:15, color:'#6B5D4F', lineHeight:1.7, margin:'0 0 28px', maxWidth:380 }}>Refresh your space for less. Sale ends when our current stock runs out — first come, first served.</p>
             <div><Button variant="primary" size="lg" onClick={() => onNavigate('products')}>Shop the sale</Button></div>
           </div>
-          <div style={{ minHeight:280 }}>
-            <ProductImage id={555} alt="Sale items" className="promo-img"/>
-            <style>{`.promo-img { width:100%; height:100%; }`}</style>
+          <div style={{ minHeight:280, overflow:'hidden' }}>
+            <ProductImg src={PROMO_IMAGE} alt="Sale items" style={{ height:'100%' }} />
           </div>
         </div>
-        <style>{`@media (max-width:800px) { .promo-grid { grid-template-columns:1fr !important; } .promo-grid > div:first-child { padding:40px 28px !important; } }`}</style>
+        <style>{`@media(max-width:800px){.promo-grid{grid-template-columns:1fr!important;}.promo-grid>div:first-child{padding:40px 28px!important;}}`}</style>
       </section>
 
-      {/* ON SALE */}
+      {/* BEST SELLERS */}
       <section style={{ maxWidth:1320, margin:'0 auto', padding:'0 24px 90px' }}>
         <div style={{ marginBottom:32 }}>
-          <span style={{ fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Don't miss out</span>
-          <h2 style={{ fontFamily:'Fraunces, serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>Current offers</h2>
+          <span style={{ fontFamily:'Inter,sans-serif', fontSize:12.5, letterSpacing:'0.16em', textTransform:'uppercase', color:'#B5562C', fontWeight:600 }}>Don't miss out</span>
+          <h2 style={{ fontFamily:'Fraunces,serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'8px 0 0' }}>Best sellers</h2>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:20 }} className="product-grid-4">
-          {onSale.map((p) => <ProductCard key={p.id} product={p} onNavigate={onNavigate}/>)}
+          {onSale.map(p => <ProductCard key={p.id} product={p} onNavigate={onNavigate} />)}
         </div>
       </section>
 
-      <style>{`
-        @media (max-width:1000px) { .product-grid-4 { grid-template-columns:repeat(2,1fr) !important; } }
-        @media (max-width:560px) { .product-grid-4 { grid-template-columns:1fr !important; } }
-      `}</style>
+      <style>{`@media(max-width:1000px){.product-grid-4{grid-template-columns:repeat(2,1fr)!important;}}@media(max-width:560px){.product-grid-4{grid-template-columns:1fr!important;}}`}</style>
     </div>
   );
 }
@@ -912,21 +635,15 @@ function HomePage({ onNavigate, setSelectedCategory }) {
 /* ============================================================
    PRODUCTS PAGE
    ============================================================ */
-
-const SORT_OPTIONS = [
-  { id:'newest', label:'Newest' },
-  { id:'price-asc', label:'Price: low to high' },
-  { id:'price-desc', label:'Price: high to low' },
-  { id:'rating-desc', label:'Highest rated' },
-];
+const SORT_OPTIONS = [{ id:'newest', label:'Newest' },{ id:'price-asc', label:'Price: low to high' },{ id:'price-desc', label:'Price: high to low' },{ id:'rating-desc', label:'Highest rated' }];
 
 function FilterSection({ title, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ borderBottom:'1px solid #EFE9DD', paddingBottom:18, marginBottom:18 }}>
-      <button onClick={() => setOpen((v) => !v)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', background:'none', border:'none', cursor:'pointer', padding:'0 0 12px', fontSize:14, fontWeight:600, color:'#1C1B19' }}>
+      <button onClick={() => setOpen(v => !v)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', background:'none', border:'none', cursor:'pointer', padding:'0 0 12px', fontFamily:'Inter,sans-serif', fontSize:14, fontWeight:600, color:'#1C1B19' }}>
         {title}
-        <ChevronDown size={16} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition:'transform 0.2s ease' }}/>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform:open?'rotate(180deg)':'rotate(0)', transition:'transform 0.2s ease' }}><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       {open && children}
     </div>
@@ -935,71 +652,51 @@ function FilterSection({ title, children, defaultOpen = true }) {
 
 function CheckboxRow({ label, checked, onChange, count }) {
   return (
-    <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 0', cursor:'pointer', fontSize:13.5 }}>
+    <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 0', cursor:'pointer', fontFamily:'Inter,sans-serif', fontSize:13.5 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${checked ? '#1C1B19' : '#D9D2C4'}`, background: checked ? '#1C1B19' : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s ease', flexShrink:0 }}>
-          {checked && <Check size={11} color="#FAF7F2"/>}
+        <div style={{ width:17, height:17, borderRadius:4, border:`1.5px solid ${checked?'#1C1B19':'#D9D2C4'}`, background:checked?'#1C1B19':'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s ease', flexShrink:0 }}>
+          {checked && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FAF7F2" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
         </div>
         <span style={{ color:'#3D3936' }}>{label}</span>
       </div>
       {count !== undefined && <span style={{ color:'#A39B8C', fontSize:12 }}>{count}</span>}
-      <input type="checkbox" checked={checked} onChange={onChange} style={{ display:'none' }}/>
+      <input type="checkbox" checked={checked} onChange={onChange} style={{ display:'none' }} />
     </label>
   );
 }
 
 function FilterPanel({ filters, setFilters, productCounts, maxPrice }) {
-  const toggleCategory = (catId) => {
-    setFilters((f) => ({
-      ...f,
-      categories: f.categories.includes(catId)
-        ? f.categories.filter((c) => c !== catId)
-        : [...f.categories, catId],
-    }));
-  };
-
+  const toggleCategory = catId => setFilters(f => ({ ...f, categories: f.categories.includes(catId) ? f.categories.filter(c => c !== catId) : [...f.categories, catId] }));
   return (
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
-        <h3 style={{ fontFamily:'Fraunces, serif', fontSize:19, fontWeight:700, margin:0, color:'#1C1B19' }}>Filters</h3>
-        <button onClick={() => setFilters({ categories:[], maxPrice, minRating:0, inStockOnly:false })}
-          style={{ background:'none', border:'none', cursor:'pointer', fontSize:12.5, color:'#B5562C', fontWeight:600 }}>
-          Clear all
-        </button>
+        <h3 style={{ fontFamily:'Fraunces,serif', fontSize:19, fontWeight:700, margin:0, color:'#1C1B19' }}>Filters</h3>
+        <button onClick={() => setFilters({ categories:[], maxPrice, minRating:0, inStockOnly:false })} style={{ background:'none', border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', fontSize:12.5, color:'#B5562C', fontWeight:600 }}>Clear all</button>
       </div>
       <FilterSection title="Category">
-        {CATEGORIES.map((cat) => (
-          <CheckboxRow key={cat.id} label={cat.name} count={productCounts[cat.id] || 0}
-            checked={filters.categories.includes(cat.id)} onChange={() => toggleCategory(cat.id)}/>
-        ))}
+        {CATEGORIES.map(cat => <CheckboxRow key={cat.id} label={cat.name} count={productCounts[cat.id]||0} checked={filters.categories.includes(cat.id)} onChange={() => toggleCategory(cat.id)} />)}
       </FilterSection>
       <FilterSection title="Price">
         <div style={{ padding:'4px 0' }}>
-          <input type="range" min={0} max={maxPrice} step={5} value={filters.maxPrice}
-            onChange={(e) => setFilters((f) => ({ ...f, maxPrice:Number(e.target.value) }))}
-            style={{ width:'100%', accentColor:'#B5562C' }}
-          />
-          <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, color:'#6B5D4F', marginTop:6 }}>
-            <span>$0</span>
-            <span style={{ fontWeight:600, color:'#1C1B19' }}>Up to ${filters.maxPrice}</span>
+          <input type="range" min={0} max={maxPrice} step={5} value={filters.maxPrice} onChange={e => setFilters(f => ({...f, maxPrice: Number(e.target.value)}))} style={{ width:'100%' }} />
+          <div style={{ display:'flex', justifyContent:'space-between', fontFamily:'Inter,sans-serif', fontSize:13, color:'#6B5D4F', marginTop:6 }}>
+            <span>$0</span><span style={{ fontWeight:600, color:'#1C1B19' }}>Up to ${filters.maxPrice}</span>
           </div>
         </div>
       </FilterSection>
       <FilterSection title="Rating">
-        {[4,3,2].map((r) => (
-          <label key={r} onClick={() => setFilters((f) => ({ ...f, minRating: f.minRating === r ? 0 : r }))}
-            style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 0', cursor:'pointer' }}>
-            <div style={{ width:17, height:17, borderRadius:'50%', border:`1.5px solid ${filters.minRating === r ? '#1C1B19' : '#D9D2C4'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              {filters.minRating === r && <div style={{ width:9, height:9, borderRadius:'50%', background:'#1C1B19' }}/>}
+        {[4,3,2].map(r => (
+          <label key={r} onClick={() => setFilters(f => ({...f, minRating: f.minRating===r?0:r}))} style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 0', cursor:'pointer' }}>
+            <div style={{ width:17, height:17, borderRadius:'50%', border:`1.5px solid ${filters.minRating===r?'#1C1B19':'#D9D2C4'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              {filters.minRating===r && <div style={{ width:9, height:9, borderRadius:'50%', background:'#1C1B19' }} />}
             </div>
-            <StarRating rating={r} showNumber={false} size={13}/>
-            <span style={{ fontSize:13, color:'#6B5D4F' }}>& up</span>
+            <StarRating rating={r} showNumber={false} size={13} />
+            <span style={{ fontFamily:'Inter,sans-serif', fontSize:13, color:'#6B5D4F' }}>& up</span>
           </label>
         ))}
       </FilterSection>
       <FilterSection title="Availability">
-        <CheckboxRow label="In stock only" checked={filters.inStockOnly}
-          onChange={() => setFilters((f) => ({ ...f, inStockOnly:!f.inStockOnly }))}/>
+        <CheckboxRow label="In stock only" checked={filters.inStockOnly} onChange={() => setFilters(f => ({...f, inStockOnly:!f.inStockOnly}))} />
       </FilterSection>
     </div>
   );
@@ -1007,144 +704,102 @@ function FilterPanel({ filters, setFilters, productCounts, maxPrice }) {
 
 function FilterChip({ label, onRemove }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:6, background:'#EDE7DA', borderRadius:20, padding:'6px 8px 6px 12px', fontSize:12.5, fontWeight:500, color:'#3D3936' }}>
+    <div style={{ display:'flex', alignItems:'center', gap:6, background:'#EDE7DA', borderRadius:20, padding:'6px 8px 6px 12px', fontFamily:'Inter,sans-serif', fontSize:12.5, fontWeight:500, color:'#3D3936' }}>
       {label}
       <button onClick={onRemove} style={{ background:'#D9D2C4', border:'none', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-        <X size={10} color="#3D3936"/>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3D3936" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
   );
 }
 
 function ProductsPage({ onNavigate, searchQuery, setSearchQuery, selectedCategory, setSelectedCategory }) {
-  const maxPrice = useMemo(() => Math.max(...PRODUCTS.map((p) => p.price)), []);
-  const [filters, setFilters] = useState({ categories: selectedCategory ? [selectedCategory] : [], maxPrice, minRating:0, inStockOnly:false });
+  const maxPrice = useMemo(() => Math.max(...PRODUCTS.map(p => p.price)), []);
+  const [filters, setFilters] = useState({ categories: selectedCategory?[selectedCategory]:[], maxPrice, minRating:0, inStockOnly:false });
   const [sortBy, setSortBy] = useState('newest');
   const [loading, setLoading] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  useEffect(() => {
-    if (selectedCategory) { setFilters((f) => ({ ...f, categories:[selectedCategory] })); setSelectedCategory(null); }
-  }, [selectedCategory]);
-
-  useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => setLoading(false), 450);
-    return () => clearTimeout(t);
-  }, [filters, sortBy, searchQuery]);
+  useEffect(() => { if(selectedCategory){setFilters(f=>({...f,categories:[selectedCategory]}));setSelectedCategory(null);} }, [selectedCategory]);
+  useEffect(() => { setLoading(true); const t = setTimeout(() => setLoading(false), 550); return () => clearTimeout(t); }, [filters, sortBy, searchQuery]);
 
   const filtered = useMemo(() => {
-    let result = PRODUCTS.filter((p) => {
-      if (filters.categories.length > 0 && !filters.categories.includes(p.category)) return false;
-      if (p.price > filters.maxPrice) return false;
-      if (filters.minRating > 0 && p.rating < filters.minRating) return false;
-      if (filters.inStockOnly && !p.inStock) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.trim().toLowerCase();
-        if (!p.name.toLowerCase().includes(q) && !p.category.toLowerCase().includes(q)) return false;
-      }
+    let result = PRODUCTS.filter(p => {
+      if(filters.categories.length>0&&!filters.categories.includes(p.category)) return false;
+      if(p.price>filters.maxPrice) return false;
+      if(filters.minRating>0&&p.rating<filters.minRating) return false;
+      if(filters.inStockOnly&&!p.inStock) return false;
+      if(searchQuery.trim()){const q=searchQuery.trim().toLowerCase();if(!p.name.toLowerCase().includes(q)&&!p.category.toLowerCase().includes(q)) return false;}
       return true;
     });
-    switch (sortBy) {
-      case 'price-asc': result.sort((a,b) => a.price-b.price); break;
-      case 'price-desc': result.sort((a,b) => b.price-a.price); break;
-      case 'rating-desc': result.sort((a,b) => b.rating-a.rating); break;
-      case 'newest': result.sort((a,b) => a.addedDaysAgo-b.addedDaysAgo); break;
+    switch(sortBy){
+      case 'price-asc': result.sort((a,b)=>a.price-b.price); break;
+      case 'price-desc': result.sort((a,b)=>b.price-a.price); break;
+      case 'rating-desc': result.sort((a,b)=>b.rating-a.rating); break;
+      case 'newest': result.sort((a,b)=>a.addedDaysAgo-b.addedDaysAgo); break;
     }
     return result;
   }, [filters, sortBy, searchQuery]);
 
-  const productCounts = useMemo(() => {
-    const counts = {};
-    PRODUCTS.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
-    return counts;
-  }, []);
-
-  const activeFilterCount = filters.categories.length + (filters.minRating > 0 ? 1 : 0) + (filters.inStockOnly ? 1 : 0) + (filters.maxPrice < maxPrice ? 1 : 0);
+  const productCounts = useMemo(() => { const c={}; PRODUCTS.forEach(p=>{c[p.category]=(c[p.category]||0)+1;}); return c; }, []);
+  const activeFilterCount = filters.categories.length + (filters.minRating>0?1:0) + (filters.inStockOnly?1:0) + (filters.maxPrice<maxPrice?1:0);
 
   return (
     <div style={{ maxWidth:1320, margin:'0 auto', padding:'32px 24px 90px' }}>
       <div style={{ marginBottom:28 }}>
-        <h1 style={{ fontFamily:'Fraunces, serif', fontSize:38, fontWeight:700, color:'#1C1B19', margin:'0 0 8px' }}>Shop all products</h1>
-        <p style={{ fontSize:14.5, color:'#8C8579', margin:0 }}>
-          {loading ? 'Searching…' : `${filtered.length} ${filtered.length===1 ? 'result' : 'results'}`}
-          {searchQuery && !loading && <> for "<strong style={{ color:'#1C1B19' }}>{searchQuery}</strong>"</>}
+        <h1 style={{ fontFamily:'Fraunces,serif', fontSize:38, fontWeight:700, color:'#1C1B19', margin:'0 0 8px' }}>Shop all products</h1>
+        <p style={{ fontFamily:'Inter,sans-serif', fontSize:14.5, color:'#8C8579', margin:0 }}>
+          {loading ? 'Searching…' : `${filtered.length} ${filtered.length===1?'result':'results'}`}
+          {searchQuery&&!loading&&<> for "<strong style={{color:'#1C1B19'}}>{searchQuery}</strong>"</>}
         </p>
       </div>
-
       <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:36 }} className="products-layout">
-        <aside className="filter-sidebar">
-          <FilterPanel filters={filters} setFilters={setFilters} productCounts={productCounts} maxPrice={maxPrice}/>
-        </aside>
+        <aside className="filter-sidebar"><FilterPanel filters={filters} setFilters={setFilters} productCounts={productCounts} maxPrice={maxPrice} /></aside>
         <div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22, gap:12, flexWrap:'wrap' }}>
-            <button className="mobile-filter-btn" onClick={() => setMobileFiltersOpen(true)}
-              style={{ display:'none', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:8, border:'1.5px solid #EFE9DD', background:'#FFFFFF', cursor:'pointer', fontSize:13.5, fontWeight:600, color:'#1C1B19' }}>
-              <Filter size={15}/> Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            <button className="mobile-filter-btn" onClick={() => setMobileFiltersOpen(true)} style={{ display:'none', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:8, border:'1.5px solid #EFE9DD', background:'#FFFFFF', cursor:'pointer', fontFamily:'Inter,sans-serif', fontSize:13.5, fontWeight:600, color:'#1C1B19' }}>
+              ⊞ Filters {activeFilterCount>0&&`(${activeFilterCount})`}
             </button>
-            <div/>
+            <div />
             <div style={{ position:'relative' }}>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                style={{ appearance:'none', border:'1.5px solid #EFE9DD', borderRadius:8, padding:'10px 36px 10px 14px', fontSize:13.5, fontWeight:600, color:'#1C1B19', background:'#FFFFFF', cursor:'pointer' }}>
-                {SORT_OPTIONS.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ appearance:'none', border:'1.5px solid #EFE9DD', borderRadius:8, padding:'10px 36px 10px 14px', fontFamily:'Inter,sans-serif', fontSize:13.5, fontWeight:600, color:'#1C1B19', background:'#FFFFFF', cursor:'pointer' }}>
+                {SORT_OPTIONS.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
               </select>
-              <ChevronDown size={14} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color:'#6B5D4F' }}/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B5D4F" strokeWidth="2" style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
-
-          {activeFilterCount > 0 && (
+          {activeFilterCount>0 && (
             <div style={{ display:'flex', gap:8, marginBottom:18, flexWrap:'wrap' }}>
-              {filters.categories.map((c) => (
-                <FilterChip key={c} label={CATEGORIES.find((cat) => cat.id===c)?.name}
-                  onRemove={() => setFilters((f) => ({ ...f, categories:f.categories.filter((x) => x!==c) }))}/>
-              ))}
-              {filters.minRating > 0 && <FilterChip label={`${filters.minRating}+ stars`} onRemove={() => setFilters((f) => ({ ...f, minRating:0 }))}/>}
-              {filters.inStockOnly && <FilterChip label="In stock" onRemove={() => setFilters((f) => ({ ...f, inStockOnly:false }))}/>}
-              {filters.maxPrice < maxPrice && <FilterChip label={`Under $${filters.maxPrice}`} onRemove={() => setFilters((f) => ({ ...f, maxPrice }))}/>}
+              {filters.categories.map(c => <FilterChip key={c} label={CATEGORIES.find(cat=>cat.id===c)?.name} onRemove={() => setFilters(f=>({...f,categories:f.categories.filter(x=>x!==c)}))} />)}
+              {filters.minRating>0 && <FilterChip label={`${filters.minRating}+ stars`} onRemove={() => setFilters(f=>({...f,minRating:0}))} />}
+              {filters.inStockOnly && <FilterChip label="In stock" onRemove={() => setFilters(f=>({...f,inStockOnly:false}))} />}
+              {filters.maxPrice<maxPrice && <FilterChip label={`Under $${filters.maxPrice}`} onRemove={() => setFilters(f=>({...f,maxPrice}))} />}
             </div>
           )}
-
           {loading ? (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }} className="product-grid-3">
-              {Array.from({ length:6 }).map((_,i) => <ProductCardSkeleton key={i}/>)}
+              {Array.from({length:6}).map((_,i)=><ProductCardSkeleton key={i}/>)}
             </div>
-          ) : filtered.length === 0 ? (
-            <EmptyState icon={Search} title="No products found"
-              message="Try removing a filter or searching for something else — like 'lamp', 'sofa', or 'rug'."
-              action={<Button variant="secondary" onClick={() => { setFilters({ categories:[], maxPrice, minRating:0, inStockOnly:false }); setSearchQuery(''); }}>Clear filters</Button>}
-            />
+          ) : filtered.length===0 ? (
+            <EmptyState icon={({size,color}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>} title="No products found" message="Try removing a filter or searching for something else." action={<Button variant="secondary" onClick={() => { setFilters({categories:[],maxPrice,minRating:0,inStockOnly:false}); setSearchQuery(''); }}>Clear filters</Button>} />
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }} className="product-grid-3">
-              {filtered.map((p) => <ProductCard key={p.id} product={p} onNavigate={onNavigate}/>)}
+              {filtered.map(p => <ProductCard key={p.id} product={p} onNavigate={onNavigate} />)}
             </div>
           )}
         </div>
       </div>
-
       {mobileFiltersOpen && (
         <div style={{ position:'fixed', inset:0, zIndex:55, display:'flex' }}>
-          <div onClick={() => setMobileFiltersOpen(false)} style={{ position:'absolute', inset:0, background:'rgba(28,27,25,0.35)' }}/>
+          <div onClick={() => setMobileFiltersOpen(false)} style={{ position:'absolute', inset:0, background:'rgba(28,27,25,0.35)' }} />
           <div style={{ position:'relative', marginLeft:'auto', width:'min(340px,88vw)', height:'100%', background:'#FAF7F2', padding:24, overflowY:'auto' }}>
-            <button onClick={() => setMobileFiltersOpen(false)} style={{ position:'absolute', top:20, right:20, background:'none', border:'none', cursor:'pointer' }}>
-              <X size={20}/>
-            </button>
-            <div style={{ marginTop:32 }}>
-              <FilterPanel filters={filters} setFilters={setFilters} productCounts={productCounts} maxPrice={maxPrice}/>
-            </div>
+            <button onClick={() => setMobileFiltersOpen(false)} style={{ position:'absolute', top:20, right:20, background:'none', border:'none', cursor:'pointer' }}>✕</button>
+            <div style={{ marginTop:32 }}><FilterPanel filters={filters} setFilters={setFilters} productCounts={productCounts} maxPrice={maxPrice} /></div>
             <Button variant="primary" full onClick={() => setMobileFiltersOpen(false)} style={{ marginTop:12 }}>Show {filtered.length} results</Button>
           </div>
         </div>
       )}
-
-      <style>{`
-        @media (max-width:920px) {
-          .products-layout { grid-template-columns:1fr !important; }
-          .filter-sidebar { display:none !important; }
-          .mobile-filter-btn { display:flex !important; }
-          .product-grid-3 { grid-template-columns:repeat(2,1fr) !important; }
-        }
-        @media (max-width:560px) { .product-grid-3 { grid-template-columns:1fr !important; } }
-      `}</style>
+      <style>{`@media(max-width:920px){.products-layout{grid-template-columns:1fr!important;}.filter-sidebar{display:none!important;}.mobile-filter-btn{display:flex!important;}.product-grid-3{grid-template-columns:repeat(2,1fr)!important;}}@media(max-width:560px){.product-grid-3{grid-template-columns:1fr!important;}}`}</style>
     </div>
   );
 }
@@ -1152,7 +807,6 @@ function ProductsPage({ onNavigate, searchQuery, setSearchQuery, selectedCategor
 /* ============================================================
    PRODUCT DETAIL PAGE
    ============================================================ */
-
 function ProductDetailPage({ productId, onNavigate }) {
   const { addItem } = useCart();
   const [loading, setLoading] = useState(true);
@@ -1162,56 +816,43 @@ function ProductDetailPage({ productId, onNavigate }) {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
 
-  const product = PRODUCTS.find((p) => p.id === productId);
+  const product = PRODUCTS.find(p => p.id === productId);
 
-  useEffect(() => { setLoading(true); setSelectedImage(0); setQuantity(1); const t = setTimeout(() => setLoading(false), 400); return () => clearTimeout(t); }, [productId]);
-  useEffect(() => { if (product) { setSelectedColor(product.colors?.[0] || null); setSelectedSize(product.sizes?.[1] || null); } }, [product]);
+  useEffect(() => { setLoading(true); setSelectedImage(0); setQuantity(1); const t = setTimeout(()=>setLoading(false),400); return ()=>clearTimeout(t); }, [productId]);
+  useEffect(() => { if(product){ setSelectedColor(product.colors?.[0]||null); setSelectedSize(product.sizes?.[1]||null); } }, [product]);
 
-  if (!product) {
-    return (
-      <div style={{ maxWidth:1320, margin:'0 auto', padding:'60px 24px' }}>
-        <EmptyState icon={AlertCircle} title="Product not found"
-          message="This product may have been removed or the link is broken."
-          action={<Button variant="primary" onClick={() => onNavigate('products')}>Back to shop</Button>}
-        />
-      </div>
-    );
-  }
+  if(!product) return (
+    <div style={{ maxWidth:1320, margin:'0 auto', padding:'60px 24px' }}>
+      <EmptyState icon={({size,color}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>} title="Product not found" message="This product may have been removed." action={<Button variant="primary" onClick={() => onNavigate('products')}>Back to shop</Button>} />
+    </div>
+  );
 
-  const similar = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
-  const discount = product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : null;
+  const similar = PRODUCTS.filter(p => p.category===product.category && p.id!==product.id).slice(0,4);
+  const discount = product.originalPrice ? Math.round((1-product.price/product.originalPrice)*100) : null;
 
   return (
     <div style={{ maxWidth:1320, margin:'0 auto', padding:'24px 24px 90px' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:24, fontSize:13, color:'#A39B8C' }}>
-        <button onClick={() => onNavigate('home')} style={{ background:'none', border:'none', cursor:'pointer', color:'#A39B8C', display:'flex', alignItems:'center' }}><HomeIcon size={13}/></button>
-        <ChevronRight size={13}/>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:24, fontFamily:'Inter,sans-serif', fontSize:13, color:'#A39B8C' }}>
+        <button onClick={() => onNavigate('home')} style={{ background:'none', border:'none', cursor:'pointer', color:'#A39B8C' }}>🏠</button>
+        <span>›</span>
         <button onClick={() => onNavigate('products')} style={{ background:'none', border:'none', cursor:'pointer', color:'#A39B8C' }}>Shop</button>
-        <ChevronRight size={13}/>
+        <span>›</span>
         <span style={{ color:'#1C1B19' }}>{product.name}</span>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:56 }} className="pdp-grid">
         <div>
           {loading ? (
-            <>
-              <Skeleton height={0} style={{ paddingBottom:'100%', borderRadius:12, marginBottom:12 }}/>
-              <div style={{ display:'flex', gap:10 }}>
-                {[1,2,3].map((i) => <Skeleton key={i} width={84} height={84} radius={8}/>)}
-              </div>
-            </>
+            <><Skeleton height={0} style={{ paddingBottom:'100%', borderRadius:12, marginBottom:12 }} /><div style={{ display:'flex', gap:10 }}>{[1,2,3].map(i=><Skeleton key={i} width={84} height={84} radius={8}/>)}</div></>
           ) : (
             <>
               <div style={{ borderRadius:12, overflow:'hidden', aspectRatio:'1/1', marginBottom:12 }}>
-                <ProductImage id={product.images[selectedImage]} alt={product.name} className="pdp-main"/>
-                <style>{`.pdp-main { width:100%; height:100%; }`}</style>
+                <ProductImg src={product.images[selectedImage]} alt={product.name} style={{ height:'100%' }} />
               </div>
               <div style={{ display:'flex', gap:10 }}>
-                {product.images.map((imgId, idx) => (
-                  <button key={imgId} onClick={() => setSelectedImage(idx)}
-                    style={{ width:84, height:84, borderRadius:8, overflow:'hidden', padding:0, border:`2px solid ${selectedImage===idx ? '#1C1B19' : 'transparent'}`, cursor:'pointer', flexShrink:0 }}>
-                    <ProductImage id={imgId} alt={`view ${idx+1}`} className="pdp-thumb"/>
-                    <style>{`.pdp-thumb { width:100%; height:100%; }`}</style>
+                {product.images.map((imgSrc, idx) => (
+                  <button key={idx} onClick={() => setSelectedImage(idx)} style={{ width:84, height:84, borderRadius:8, overflow:'hidden', padding:0, border:`2px solid ${selectedImage===idx?'#1C1B19':'transparent'}`, cursor:'pointer', flexShrink:0 }}>
+                    <ProductImg src={imgSrc} alt={`${product.name} view ${idx+1}`} />
                   </button>
                 ))}
               </div>
@@ -1222,38 +863,30 @@ function ProductDetailPage({ productId, onNavigate }) {
         <div>
           {loading ? (
             <div>
-              <Skeleton width="30%" height={13} style={{ marginBottom:14 }}/>
-              <Skeleton width="70%" height={32} style={{ marginBottom:14 }}/>
-              <Skeleton width="40%" height={18} style={{ marginBottom:20 }}/>
-              <Skeleton width="100%" height={80} style={{ marginBottom:24 }}/>
-              <Skeleton width="100%" height={48} radius={8}/>
+              <Skeleton width="30%" height={13} style={{ marginBottom:14 }} /><Skeleton width="70%" height={32} style={{ marginBottom:14 }} />
+              <Skeleton width="40%" height={18} style={{ marginBottom:20 }} /><Skeleton width="100%" height={80} style={{ marginBottom:24 }} />
+              <Skeleton width="100%" height={48} radius={8} />
             </div>
           ) : (
             <>
-              <div style={{ fontSize:12, color:'#A39B8C', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>
-                {CATEGORIES.find((c) => c.id===product.category)?.name}
-              </div>
-              <h1 style={{ fontFamily:'Fraunces, serif', fontSize:38, fontWeight:700, color:'#1C1B19', margin:'0 0 12px', lineHeight:1.15 }}>{product.name}</h1>
+              <div style={{ fontSize:12, color:'#A39B8C', fontFamily:'Inter,sans-serif', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>{CATEGORIES.find(c=>c.id===product.category)?.name}</div>
+              <h1 style={{ fontFamily:'Fraunces,serif', fontSize:38, fontWeight:700, color:'#1C1B19', margin:'0 0 12px', lineHeight:1.15 }}>{product.name}</h1>
               <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
-                <StarRating rating={product.rating}/>
-                <span style={{ fontSize:13, color:'#A39B8C' }}>{product.reviewCount} reviews</span>
+                <StarRating rating={product.rating} />
+                <span style={{ fontFamily:'Inter,sans-serif', fontSize:13, color:'#A39B8C' }}>{product.reviewCount} reviews</span>
                 {product.isNew && <Badge tone="new">New</Badge>}
               </div>
-              <div style={{ marginBottom:6 }}><Price price={product.price} originalPrice={product.originalPrice} size="xl"/></div>
+              <div style={{ marginBottom:6 }}><Price price={product.price} originalPrice={product.originalPrice} size="xl" /></div>
               {discount && <div style={{ marginBottom:18 }}><Badge tone="sale">Save {discount}%</Badge></div>}
-
-              <p style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.75, margin:'18px 0 24px' }}>{product.description}</p>
+              <p style={{ fontFamily:'Inter,sans-serif', fontSize:15, color:'#6B5D4F', lineHeight:1.75, margin:'18px 0 24px' }}>{product.description}</p>
 
               {product.colors && (
                 <div style={{ marginBottom:22 }}>
-                  <div style={{ fontSize:13.5, fontWeight:600, color:'#1C1B19', marginBottom:10 }}>
-                    Color: <span style={{ color:'#6B5D4F', fontWeight:500 }}>{selectedColor}</span>
-                  </div>
+                  <div style={{ fontFamily:'Inter,sans-serif', fontSize:13.5, fontWeight:600, color:'#1C1B19', marginBottom:10 }}>Color: <span style={{ color:'#6B5D4F', fontWeight:500 }}>{selectedColor}</span></div>
                   <div style={{ display:'flex', gap:10 }}>
-                    {product.colors.map((c) => (
-                      <button key={c} onClick={() => setSelectedColor(c)} aria-label={c}
-                        style={{ width:36, height:36, borderRadius:'50%', border: selectedColor===c ? '2px solid #1C1B19' : '2px solid transparent', padding:2, cursor:'pointer', background:'transparent', outline: selectedColor===c ? '1px solid #1C1B19' : 'none', outlineOffset:2 }}>
-                        <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: COLOR_HEX[c] || '#CCC', border:'1px solid rgba(0,0,0,0.08)' }}/>
+                    {product.colors.map(c => (
+                      <button key={c} onClick={() => setSelectedColor(c)} aria-label={c} style={{ width:36, height:36, borderRadius:'50%', border:selectedColor===c?'2px solid #1C1B19':'2px solid transparent', padding:2, cursor:'pointer', background:'transparent', outline:selectedColor===c?'1px solid #1C1B19':'none', outlineOffset:2 }}>
+                        <div style={{ width:'100%', height:'100%', borderRadius:'50%', background:COLOR_HEX[c]||'#CCC', border:'1px solid rgba(0,0,0,0.08)' }} />
                       </button>
                     ))}
                   </div>
@@ -1262,13 +895,10 @@ function ProductDetailPage({ productId, onNavigate }) {
 
               {product.sizes && (
                 <div style={{ marginBottom:22 }}>
-                  <div style={{ fontSize:13.5, fontWeight:600, color:'#1C1B19', marginBottom:10 }}>Size</div>
+                  <div style={{ fontFamily:'Inter,sans-serif', fontSize:13.5, fontWeight:600, color:'#1C1B19', marginBottom:10 }}>Size</div>
                   <div style={{ display:'flex', gap:10 }}>
-                    {product.sizes.map((s) => (
-                      <button key={s} onClick={() => setSelectedSize(s)}
-                        style={{ width:44, height:40, borderRadius:8, fontSize:13.5, fontWeight:600, border:`1.5px solid ${selectedSize===s ? '#1C1B19' : '#EFE9DD'}`, background: selectedSize===s ? '#1C1B19' : '#FFFFFF', color: selectedSize===s ? '#FAF7F2' : '#1C1B19', cursor:'pointer', transition:'all 0.15s ease' }}>
-                        {s}
-                      </button>
+                    {product.sizes.map(s => (
+                      <button key={s} onClick={() => setSelectedSize(s)} style={{ width:44, height:40, borderRadius:8, fontFamily:'Inter,sans-serif', fontSize:13.5, fontWeight:600, border:`1.5px solid ${selectedSize===s?'#1C1B19':'#EFE9DD'}`, background:selectedSize===s?'#1C1B19':'#FFFFFF', color:selectedSize===s?'#FAF7F2':'#1C1B19', cursor:'pointer', transition:'all 0.15s ease' }}>{s}</button>
                     ))}
                   </div>
                 </div>
@@ -1276,25 +906,18 @@ function ProductDetailPage({ productId, onNavigate }) {
 
               <div style={{ display:'flex', gap:12, alignItems:'stretch', marginBottom:18 }}>
                 <div style={{ display:'flex', alignItems:'center', border:'1.5px solid #EFE9DD', borderRadius:8 }}>
-                  <button onClick={() => setQuantity((q) => Math.max(1,q-1))} style={{ width:44, height:48, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Minus size={15} color="#1C1B19"/></button>
-                  <span style={{ width:40, textAlign:'center', fontSize:15, fontWeight:600 }}>{quantity}</span>
-                  <button onClick={() => setQuantity((q) => q+1)} style={{ width:44, height:48, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Plus size={15} color="#1C1B19"/></button>
+                  <button onClick={() => setQuantity(q=>Math.max(1,q-1))} style={{ width:44, height:48, border:'none', background:'none', cursor:'pointer', fontSize:18 }}>−</button>
+                  <span style={{ width:40, textAlign:'center', fontFamily:'Inter,sans-serif', fontSize:15, fontWeight:600 }}>{quantity}</span>
+                  <button onClick={() => setQuantity(q=>q+1)} style={{ width:44, height:48, border:'none', background:'none', cursor:'pointer', fontSize:18 }}>+</button>
                 </div>
-                <Button variant="accent" size="lg" style={{ flex:1, height:48 }} disabled={!product.inStock}
-                  onClick={() => addItem(product, { color:selectedColor, size:selectedSize, quantity })}>
-                  <ShoppingBag size={17}/>
-                  {product.inStock ? 'Add to cart' : 'Out of stock'}
+                <Button variant="accent" size="lg" style={{ flex:1, height:48 }} disabled={!product.inStock} onClick={() => addItem(product, {color:selectedColor, size:selectedSize, quantity})}>
+                  🛍 {product.inStock ? 'Add to cart' : 'Out of stock'}
                 </Button>
               </div>
 
-              {!product.inStock && (
-                <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#B5562C', marginBottom:18 }}>
-                  <AlertCircle size={15}/> This item is currently out of stock
-                </div>
-              )}
-
-              <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#6B5D4F', paddingTop:18, borderTop:'1px solid #EFE9DD' }}>
-                <Truck size={16}/> Free shipping on orders over ${FREE_SHIPPING_THRESHOLD}
+              {!product.inStock && <div style={{ display:'flex', alignItems:'center', gap:8, fontFamily:'Inter,sans-serif', fontSize:13, color:'#B5562C', marginBottom:18 }}>⚠ This item is currently out of stock</div>}
+              <div style={{ display:'flex', alignItems:'center', gap:8, fontFamily:'Inter,sans-serif', fontSize:13, color:'#6B5D4F', paddingTop:18, borderTop:'1px solid #EFE9DD' }}>
+                🚚 Free shipping on orders over ${FREE_SHIPPING_THRESHOLD}
               </div>
             </>
           )}
@@ -1304,35 +927,29 @@ function ProductDetailPage({ productId, onNavigate }) {
       {!loading && (
         <div style={{ marginTop:60 }}>
           <div style={{ display:'flex', gap:28, borderBottom:'1px solid #EFE9DD', marginBottom:24 }}>
-            {[{ id:'description', label:'Description' }, { id:'details', label:'Materials & care' }, { id:'reviews', label:`Reviews (${product.reviewCount})` }].map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                style={{ background:'none', border:'none', cursor:'pointer', padding:'0 0 14px', fontSize:14.5, fontWeight:600, color: activeTab===tab.id ? '#1C1B19' : '#A39B8C', borderBottom: activeTab===tab.id ? '2px solid #B5562C' : '2px solid transparent' }}>
-                {tab.label}
-              </button>
+            {[{id:'description',label:'Description'},{id:'details',label:'Materials & care'},{id:'reviews',label:`Reviews (${product.reviewCount})`}].map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ background:'none', border:'none', cursor:'pointer', padding:'0 0 14px', fontFamily:'Inter,sans-serif', fontSize:14.5, fontWeight:600, color:activeTab===tab.id?'#1C1B19':'#A39B8C', borderBottom:activeTab===tab.id?'2px solid #B5562C':'2px solid transparent' }}>{tab.label}</button>
             ))}
           </div>
           <div style={{ maxWidth:720 }}>
-            {activeTab==='description' && <p style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.8, margin:0 }}>{product.description} Every piece is inspected before it leaves our workshop, and packaging is designed to be reused.</p>}
-            {activeTab==='details' && <ul style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.9, margin:0, paddingLeft:20 }}>{product.details.map((d,i) => <li key={i}>{d}</li>)}</ul>}
+            {activeTab==='description' && <p style={{ fontFamily:'Inter,sans-serif', fontSize:15, color:'#6B5D4F', lineHeight:1.8, margin:0 }}>{product.description} Every piece is inspected before it leaves our workshop, and packaging is designed to be reused.</p>}
+            {activeTab==='details' && <ul style={{ fontFamily:'Inter,sans-serif', fontSize:15, color:'#6B5D4F', lineHeight:1.9, margin:0, paddingLeft:20 }}>{product.details.map((d,i)=><li key={i}>{d}</li>)}</ul>}
             {activeTab==='reviews' && (
               <div>
                 <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:24 }}>
-                  <div style={{ fontFamily:'Fraunces, serif', fontSize:48, fontWeight:700, color:'#1C1B19' }}>{product.rating.toFixed(1)}</div>
+                  <div style={{ fontFamily:'Fraunces,serif', fontSize:48, fontWeight:700, color:'#1C1B19' }}>{product.rating.toFixed(1)}</div>
                   <div>
-                    <StarRating rating={product.rating} showNumber={false} size={18}/>
-                    <div style={{ fontSize:13, color:'#A39B8C', marginTop:4 }}>Based on {product.reviewCount} reviews</div>
+                    <StarRating rating={product.rating} showNumber={false} size={18} />
+                    <div style={{ fontFamily:'Inter,sans-serif', fontSize:13, color:'#A39B8C', marginTop:4 }}>Based on {product.reviewCount} reviews</div>
                   </div>
                 </div>
-                {[
-                  { name:'Jordan M.', rating:5, text:'Exactly as pictured and incredibly comfortable. Assembly took about 15 minutes with two people.' },
-                  { name:'Priya K.', rating:4, text:'Lovely quality and finish. Shipping took a bit longer than expected but well worth the wait.' },
-                ].map((r,i) => (
+                {[{name:'Jordan M.',rating:5,text:'Exactly as pictured and incredibly comfortable. Assembly took about 15 minutes with two people.'},{name:'Priya K.',rating:4,text:'Lovely quality and finish. Shipping took a bit longer than expected but well worth the wait.'}].map((r,i) => (
                   <div key={i} style={{ borderTop:'1px solid #EFE9DD', padding:'18px 0' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-                      <span style={{ fontSize:14, fontWeight:600, color:'#1C1B19' }}>{r.name}</span>
-                      <StarRating rating={r.rating} showNumber={false} size={13}/>
+                      <span style={{ fontFamily:'Inter,sans-serif', fontSize:14, fontWeight:600, color:'#1C1B19' }}>{r.name}</span>
+                      <StarRating rating={r.rating} showNumber={false} size={13} />
                     </div>
-                    <p style={{ fontSize:14, color:'#6B5D4F', lineHeight:1.7, margin:0 }}>{r.text}</p>
+                    <p style={{ fontFamily:'Inter,sans-serif', fontSize:14, color:'#6B5D4F', lineHeight:1.7, margin:0 }}>{r.text}</p>
                   </div>
                 ))}
               </div>
@@ -1341,20 +958,15 @@ function ProductDetailPage({ productId, onNavigate }) {
         </div>
       )}
 
-      {!loading && similar.length > 0 && (
+      {similar.length>0 && !loading && (
         <div style={{ marginTop:72 }}>
-          <h2 style={{ fontFamily:'Fraunces, serif', fontSize:30, fontWeight:700, color:'#1C1B19', margin:'0 0 24px' }}>You may also like</h2>
+          <h2 style={{ fontFamily:'Fraunces,serif', fontSize:28, fontWeight:700, color:'#1C1B19', margin:'0 0 24px' }}>You may also like</h2>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:20 }} className="product-grid-4">
-            {similar.map((p) => <ProductCard key={p.id} product={p} onNavigate={onNavigate}/>)}
+            {similar.map(p => <ProductCard key={p.id} product={p} onNavigate={onNavigate} />)}
           </div>
         </div>
       )}
-
-      <style>{`
-        @media (max-width:860px) { .pdp-grid { grid-template-columns:1fr !important; gap:28px !important; } }
-        @media (max-width:1000px) { .product-grid-4 { grid-template-columns:repeat(2,1fr) !important; } }
-        @media (max-width:560px) { .product-grid-4 { grid-template-columns:1fr !important; } }
-      `}</style>
+      <style>{`@media(max-width:860px){.pdp-grid{grid-template-columns:1fr!important;gap:32px!important;}}@media(max-width:1000px){.product-grid-4{grid-template-columns:repeat(2,1fr)!important;}}@media(max-width:560px){.product-grid-4{grid-template-columns:1fr!important;}}`}</style>
     </div>
   );
 }
@@ -1362,210 +974,151 @@ function ProductDetailPage({ productId, onNavigate }) {
 /* ============================================================
    CHECKOUT PAGE
    ============================================================ */
-
-function Field({ label, type='text', value, onChange, placeholder, required, error, full }) {
-  return (
-    <div style={{ gridColumn: full ? '1/-1' : 'auto' }}>
-      <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#1C1B19', marginBottom:6 }}>
-        {label} {required && <span style={{ color:'#B5562C' }}>*</span>}
-      </label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        style={{ width:'100%', padding:'11px 14px', borderRadius:8, fontSize:14, border:`1.5px solid ${error ? '#B5562C' : '#EFE9DD'}`, outline:'none', boxSizing:'border-box', background:'#FFFFFF', color:'#1C1B19' }}
-        onFocus={(e) => e.target.style.borderColor='#1C1B19'}
-        onBlur={(e) => e.target.style.borderColor=error ? '#B5562C' : '#EFE9DD'}
-      />
-      {error && <div style={{ fontSize:12, color:'#B5562C', marginTop:5 }}>{error}</div>}
-    </div>
-  );
-}
-
-function CheckoutSection({ number, title, children }) {
-  return (
-    <div style={{ marginBottom:36 }}>
-      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
-        <div style={{ width:28, height:28, borderRadius:'50%', background:'#1C1B19', color:'#FAF7F2', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}>
-          {number}
-        </div>
-        <h2 style={{ fontFamily:'Fraunces, serif', fontSize:22, fontWeight:700, color:'#1C1B19', margin:0 }}>{title}</h2>
-      </div>
-      {children}
-    </div>
-  );
-}
-
 function CheckoutPage({ onNavigate }) {
   const { items, subtotal, clearCart } = useCart();
-  const [form, setForm] = useState({ email:'', firstName:'', lastName:'', address:'', city:'', zip:'', country:'United States', cardNumber:'', cardExpiry:'', cardCvc:'' });
+  const shipping = items.length===0 ? 0 : (subtotal>=FREE_SHIPPING_THRESHOLD?0:SHIPPING_FLAT);
+  const tax = subtotal * TAX_RATE;
+  const total = subtotal + shipping + tax;
+  const [form, setForm] = useState({ firstName:'', lastName:'', email:'', address:'', apt:'', city:'', state:'', zip:'', phone:'', paymentMethod:'card', cardNumber:'', cardExpiry:'', cardCvc:'' });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [shippingMethod, setShippingMethod] = useState('standard');
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [success, setSuccess] = useState(false);
 
-  const set = (key) => (val) => setForm((f) => ({ ...f, [key]:val }));
-  const shippingCost = shippingMethod==='express' ? 24 : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT);
-  const tax = subtotal * TAX_RATE;
-  const total = subtotal + shippingCost + tax;
+  if(items.length===0 && !success) return (
+    <div style={{ maxWidth:1320, margin:'0 auto', padding:'60px 24px' }}>
+      <EmptyState icon={({size,color}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>} title="Your cart is empty" message="Add some items before checking out." action={<Button variant="primary" onClick={() => onNavigate('products')}>Browse products</Button>} />
+    </div>
+  );
+
+  if(success) return (
+    <div style={{ maxWidth:560, margin:'80px auto', padding:'0 24px', textAlign:'center' }}>
+      <div style={{ width:72, height:72, borderRadius:'50%', background:'#3D4A3D', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px' }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h1 style={{ fontFamily:'Fraunces,serif', fontSize:38, fontWeight:700, color:'#1C1B19', margin:'0 0 14px' }}>Order placed!</h1>
+      <p style={{ fontFamily:'Inter,sans-serif', fontSize:15, color:'#6B5D4F', lineHeight:1.7, marginBottom:32 }}>Thank you for your order. You'll receive a confirmation email shortly with tracking information.</p>
+      <Button variant="accent" size="lg" onClick={() => onNavigate('home')}>Back to home</Button>
+    </div>
+  );
+
+  const set = key => e => setForm(f => ({...f, [key]: e.target.value}));
 
   const validate = () => {
-    const errs = {};
-    if (!form.email.includes('@')) errs.email='Enter a valid email address';
-    if (!form.firstName.trim()) errs.firstName='Required';
-    if (!form.lastName.trim()) errs.lastName='Required';
-    if (!form.address.trim()) errs.address='Required';
-    if (!form.city.trim()) errs.city='Required';
-    if (!form.zip.trim()) errs.zip='Required';
-    if (paymentMethod==='card') {
-      if (!/^\d{12,19}$/.test(form.cardNumber.replace(/\s/g,''))) errs.cardNumber='Enter a valid card number';
-      if (!/^\d{2}\/\d{2}$/.test(form.cardExpiry)) errs.cardExpiry='MM/YY';
-      if (!/^\d{3,4}$/.test(form.cardCvc)) errs.cardCvc='Invalid';
+    const e = {};
+    if(!form.firstName.trim()) e.firstName = 'Required';
+    if(!form.lastName.trim()) e.lastName = 'Required';
+    if(!form.email.trim()||!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email required';
+    if(!form.address.trim()) e.address = 'Required';
+    if(!form.city.trim()) e.city = 'Required';
+    if(!form.zip.trim()) e.zip = 'Required';
+    if(form.paymentMethod==='card'){
+      if(!form.cardNumber.trim()) e.cardNumber='Required';
+      if(!form.cardExpiry.trim()) e.cardExpiry='Required';
+      if(!form.cardCvc.trim()) e.cardCvc='Required';
     }
-    return errs;
+    return e;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = e => {
     e.preventDefault();
     const errs = validate();
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if(Object.keys(errs).length > 0){ setErrors(errs); return; }
     setSubmitting(true);
-    setTimeout(() => { setSubmitting(false); setOrderPlaced(true); clearCart(); }, 1200);
+    setTimeout(() => { clearCart(); setSubmitting(false); setSuccess(true); }, 1500);
   };
 
-  if (orderPlaced) {
-    return (
-      <div style={{ maxWidth:600, margin:'0 auto', padding:'90px 24px', textAlign:'center' }}>
-        <div style={{ width:72, height:72, borderRadius:'50%', background:'#3D4A3D', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px' }}>
-          <Check size={32} color="#FAF7F2"/>
-        </div>
-        <h1 style={{ fontFamily:'Fraunces, serif', fontSize:34, fontWeight:700, color:'#1C1B19', margin:'0 0 12px' }}>Order confirmed</h1>
-        <p style={{ fontSize:15, color:'#6B5D4F', lineHeight:1.7, marginBottom:32 }}>
-          Thanks{form.firstName ? `, ${form.firstName}` : ''} — we've sent a confirmation to <strong>{form.email}</strong>.
-          Your order total was <strong>${total.toFixed(2)}</strong>.
-        </p>
-        <Button variant="primary" size="lg" onClick={() => onNavigate('home')}>Back to home</Button>
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div style={{ maxWidth:1320, margin:'0 auto', padding:'60px 24px' }}>
-        <EmptyState icon={ShoppingCart} title="Nothing to check out"
-          message="Your cart is empty. Add some products before heading to checkout."
-          action={<Button variant="primary" onClick={() => onNavigate('products')}>Browse products</Button>}
-        />
-      </div>
-    );
-  }
+  const Field = ({ label, value, onChange, placeholder, required, error, type='text' }) => (
+    <div style={{ marginBottom:16 }}>
+      <label style={{ display:'block', fontFamily:'Inter,sans-serif', fontSize:13, fontWeight:600, color:'#1C1B19', marginBottom:6 }}>{label}{required&&<span style={{color:'#B5562C'}}> *</span>}</label>
+      <input type={type} value={value} onChange={onChange} placeholder={placeholder} style={{ width:'100%', padding:'11px 14px', border:`1.5px solid ${error?'#B5562C':'#E4DCC9'}`, borderRadius:8, fontFamily:'Inter,sans-serif', fontSize:14, color:'#1C1B19', background:'#FFFFFF', outline:'none' }} />
+      {error && <div style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'#B5562C', marginTop:4 }}>{error}</div>}
+    </div>
+  );
 
   return (
-    <div style={{ maxWidth:1180, margin:'0 auto', padding:'32px 24px 90px' }}>
-      <h1 style={{ fontFamily:'Fraunces, serif', fontSize:36, fontWeight:700, color:'#1C1B19', margin:'0 0 32px' }}>Checkout</h1>
-      <form onSubmit={handleSubmit} style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:56 }} className="checkout-grid">
-        <div>
-          <CheckoutSection number={1} title="Contact information">
-            <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:16 }}>
-              <Field label="Email address" type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" required error={errors.email}/>
+    <div style={{ maxWidth:1320, margin:'0 auto', padding:'32px 24px 90px' }}>
+      <button onClick={() => onNavigate('products')} style={{ display:'flex', alignItems:'center', gap:8, background:'none', border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', fontSize:14, fontWeight:600, color:'#6B5D4F', marginBottom:32 }}>← Continue shopping</button>
+      <h1 style={{ fontFamily:'Fraunces,serif', fontSize:38, fontWeight:700, color:'#1C1B19', margin:'0 0 36px' }}>Checkout</h1>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 400px', gap:48 }} className="checkout-grid">
+          <div>
+            <div style={{ background:'#FFFFFF', border:'1px solid #EFE9DD', borderRadius:12, padding:28, marginBottom:24 }}>
+              <h3 style={{ fontFamily:'Fraunces,serif', fontSize:20, fontWeight:700, color:'#1C1B19', margin:'0 0 20px' }}>Shipping information</h3>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                <Field label="First name" value={form.firstName} onChange={set('firstName')} required error={errors.firstName} />
+                <Field label="Last name" value={form.lastName} onChange={set('lastName')} required error={errors.lastName} />
+              </div>
+              <Field label="Email address" value={form.email} onChange={set('email')} type="email" placeholder="you@example.com" required error={errors.email} />
+              <Field label="Street address" value={form.address} onChange={set('address')} required error={errors.address} />
+              <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12 }}>
+                <Field label="City" value={form.city} onChange={set('city')} required error={errors.city} />
+                <Field label="State" value={form.state} onChange={set('state')} />
+                <Field label="ZIP code" value={form.zip} onChange={set('zip')} required error={errors.zip} />
+              </div>
             </div>
-          </CheckoutSection>
-
-          <CheckoutSection number={2} title="Shipping address">
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-              <Field label="First name" value={form.firstName} onChange={set('firstName')} required error={errors.firstName}/>
-              <Field label="Last name" value={form.lastName} onChange={set('lastName')} required error={errors.lastName}/>
-              <Field label="Street address" value={form.address} onChange={set('address')} required error={errors.address} full placeholder="123 Maple Street"/>
-              <Field label="City" value={form.city} onChange={set('city')} required error={errors.city}/>
-              <Field label="ZIP / Postal code" value={form.zip} onChange={set('zip')} required error={errors.zip}/>
-            </div>
-            <div style={{ marginTop:22 }}>
-              <div style={{ fontSize:13, fontWeight:600, color:'#1C1B19', marginBottom:10 }}>Shipping method</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                {[
-                  { id:'standard', label:'Standard shipping', sub:'5–7 business days', cost: subtotal>=FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT },
-                  { id:'express', label:'Express shipping', sub:'1–2 business days', cost:24 },
-                ].map((opt) => (
-                  <label key={opt.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', border:`1.5px solid ${shippingMethod===opt.id ? '#1C1B19' : '#EFE9DD'}`, borderRadius:8, cursor:'pointer' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                      <div style={{ width:17, height:17, borderRadius:'50%', border:`1.5px solid ${shippingMethod===opt.id ? '#1C1B19' : '#D9D2C4'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                        {shippingMethod===opt.id && <div style={{ width:9, height:9, borderRadius:'50%', background:'#1C1B19' }}/>}
-                      </div>
-                      <div>
-                        <div style={{ fontSize:14, fontWeight:600, color:'#1C1B19' }}>{opt.label}</div>
-                        <div style={{ fontSize:12.5, color:'#A39B8C' }}>{opt.sub}</div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize:14, fontWeight:600, color:'#1C1B19' }}>{opt.cost===0 ? 'Free' : `$${opt.cost}`}</span>
-                    <input type="radio" name="shipping" checked={shippingMethod===opt.id} onChange={() => setShippingMethod(opt.id)} style={{ display:'none' }}/>
+            <div style={{ background:'#FFFFFF', border:'1px solid #EFE9DD', borderRadius:12, padding:28 }}>
+              <h3 style={{ fontFamily:'Fraunces,serif', fontSize:20, fontWeight:700, color:'#1C1B19', margin:'0 0 20px' }}>Payment method</h3>
+              <div style={{ display:'flex', gap:12, marginBottom:20 }}>
+                {[['card','💳 Credit card'],['paypal','🅿 PayPal']].map(([val,label]) => (
+                  <label key={val} style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 20px', border:`2px solid ${form.paymentMethod===val?'#1C1B19':'#EFE9DD'}`, borderRadius:10, cursor:'pointer', flex:1, fontFamily:'Inter,sans-serif', fontSize:14, fontWeight:600, color:'#1C1B19', background:form.paymentMethod===val?'#F5F0E6':'#FFF' }}>
+                    <input type="radio" value={val} checked={form.paymentMethod===val} onChange={set('paymentMethod')} style={{ display:'none' }} />
+                    {label}
                   </label>
                 ))}
               </div>
+              {form.paymentMethod==='card' ? (
+                <>
+                  <Field label="Card number" value={form.cardNumber} onChange={set('cardNumber')} placeholder="1234 5678 9012 3456" required error={errors.cardNumber} />
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                    <Field label="Expiry date" value={form.cardExpiry} onChange={set('cardExpiry')} placeholder="MM / YY" required error={errors.cardExpiry} />
+                    <Field label="CVC" value={form.cardCvc} onChange={set('cardCvc')} placeholder="123" required error={errors.cardCvc} />
+                  </div>
+                </>
+              ) : (
+                <p style={{ fontFamily:'Inter,sans-serif', fontSize:14, color:'#6B5D4F' }}>You'll be redirected to PayPal to complete your purchase.</p>
+              )}
             </div>
-          </CheckoutSection>
+          </div>
 
-          <CheckoutSection number={3} title="Payment">
-            <div style={{ display:'flex', gap:10, marginBottom:18 }}>
-              {[{ id:'card', label:'Card', icon:CreditCard }, { id:'paypal', label:'PayPal', icon:Package }].map((m) => (
-                <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
-                  style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 18px', borderRadius:8, border:`1.5px solid ${paymentMethod===m.id ? '#1C1B19' : '#EFE9DD'}`, background: paymentMethod===m.id ? '#1C1B19' : '#FFFFFF', color: paymentMethod===m.id ? '#FAF7F2' : '#1C1B19', fontSize:13.5, fontWeight:600, cursor:'pointer' }}>
-                  <m.icon size={15}/> {m.label}
-                </button>
-              ))}
-            </div>
-            {paymentMethod==='card' ? (
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                <Field label="Card number" value={form.cardNumber} onChange={set('cardNumber')} placeholder="1234 5678 9012 3456" required error={errors.cardNumber} full/>
-                <Field label="Expiry" value={form.cardExpiry} onChange={set('cardExpiry')} placeholder="MM/YY" required error={errors.cardExpiry}/>
-                <Field label="CVC" value={form.cardCvc} onChange={set('cardCvc')} placeholder="123" required error={errors.cardCvc}/>
-              </div>
-            ) : (
-              <p style={{ fontSize:14, color:'#6B5D4F' }}>You'll be redirected to PayPal to complete your purchase.</p>
-            )}
-          </CheckoutSection>
-        </div>
-
-        <div>
-          <div style={{ background:'#FFFFFF', border:'1px solid #EFE9DD', borderRadius:12, padding:24, position:'sticky', top:96 }}>
-            <h3 style={{ fontFamily:'Fraunces, serif', fontSize:20, fontWeight:700, color:'#1C1B19', margin:'0 0 18px' }}>Order summary</h3>
-            <div style={{ maxHeight:280, overflowY:'auto', marginBottom:16 }}>
-              {items.map((item) => (
-                <div key={item.lineId} style={{ display:'flex', gap:12, marginBottom:14 }}>
-                  <div style={{ position:'relative', flexShrink:0 }}>
-                    <div style={{ width:56, height:56, borderRadius:6, overflow:'hidden' }}>
-                      <ProductImage id={item.productId} alt={item.name} className="co-thumb"/>
-                      <style>{`.co-thumb { width:100%; height:100%; }`}</style>
+          <div>
+            <div style={{ background:'#FFFFFF', border:'1px solid #EFE9DD', borderRadius:12, padding:24, position:'sticky', top:96 }}>
+              <h3 style={{ fontFamily:'Fraunces,serif', fontSize:20, fontWeight:700, color:'#1C1B19', margin:'0 0 18px' }}>Order summary</h3>
+              <div style={{ maxHeight:280, overflowY:'auto', marginBottom:16 }}>
+                {items.map(item => (
+                  <div key={item.lineId} style={{ display:'flex', gap:12, marginBottom:14 }}>
+                    <div style={{ position:'relative', flexShrink:0, width:56, height:56, borderRadius:6, overflow:'hidden' }}>
+                      <ProductImg src={item.image} alt={item.name} />
+                      <span style={{ position:'absolute', top:-6, right:-6, width:20, height:20, borderRadius:'50%', background:'#1C1B19', color:'#FAF7F2', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Inter,sans-serif' }}>{item.quantity}</span>
                     </div>
-                    <span style={{ position:'absolute', top:-6, right:-6, width:20, height:20, borderRadius:'50%', background:'#1C1B19', color:'#FAF7F2', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      {item.quantity}
-                    </span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontFamily:'Fraunces,serif', fontSize:14, fontWeight:600, color:'#1C1B19', lineHeight:1.3 }}>{item.name}</div>
+                      <div style={{ fontFamily:'Inter,sans-serif', fontSize:12, color:'#A39B8C' }}>{item.color}{item.color&&item.size&&' · '}{item.size&&`Size ${item.size}`}</div>
+                    </div>
+                    <div style={{ fontFamily:'Inter,sans-serif', fontSize:13.5, fontWeight:600, color:'#1C1B19' }}>${(item.price*item.quantity).toFixed(2)}</div>
                   </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontFamily:'Fraunces, serif', fontSize:14, fontWeight:600, color:'#1C1B19', lineHeight:1.3 }}>{item.name}</div>
-                    <div style={{ fontSize:12, color:'#A39B8C' }}>{item.color}{item.color && item.size && ' · '}{item.size && `Size ${item.size}`}</div>
-                  </div>
-                  <div style={{ fontSize:13.5, fontWeight:600, color:'#1C1B19' }}>${(item.price*item.quantity).toFixed(2)}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ borderTop:'1px solid #EFE9DD', paddingTop:14 }}>
-              <SummaryRow label="Subtotal" value={subtotal}/>
-              <SummaryRow label="Shipping" value={shippingCost} freeLabel={shippingCost===0}/>
-              <SummaryRow label="Estimated tax" value={tax}/>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:12, paddingTop:12, borderTop:'1px solid #EFE9DD' }}>
-                <span style={{ fontSize:15, fontWeight:600, color:'#1C1B19' }}>Total</span>
-                <span style={{ fontFamily:'Fraunces, serif', fontSize:26, fontWeight:700, color:'#1C1B19' }}>${total.toFixed(2)}</span>
+                ))}
               </div>
+              <div style={{ borderTop:'1px solid #EFE9DD', paddingTop:14 }}>
+                {[['Subtotal', subtotal],['Shipping', shipping],['Estimated tax', tax]].map(([label,val]) => (
+                  <div key={label} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', fontFamily:'Inter,sans-serif', fontSize:13.5, color:'#6B5D4F' }}>
+                    <span>{label}</span>
+                    <span style={{ color: label==='Shipping'&&val===0?'#3D4A3D':'#1C1B19', fontWeight: label==='Shipping'&&val===0?600:500 }}>{label==='Shipping'&&val===0?'Free':`$${val.toFixed(2)}`}</span>
+                  </div>
+                ))}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:12, paddingTop:12, borderTop:'1px solid #EFE9DD' }}>
+                  <span style={{ fontFamily:'Inter,sans-serif', fontSize:15, fontWeight:600, color:'#1C1B19' }}>Total</span>
+                  <span style={{ fontFamily:'Fraunces,serif', fontSize:26, fontWeight:700, color:'#1C1B19' }}>${total.toFixed(2)}</span>
+                </div>
+              </div>
+              <Button type="submit" variant="accent" full size="lg" disabled={submitting} style={{ marginTop:20 }}>
+                {submitting ? 'Placing order…' : `Place order — $${total.toFixed(2)}`}
+              </Button>
+              <p style={{ fontFamily:'Inter,sans-serif', fontSize:11.5, color:'#A39B8C', textAlign:'center', marginTop:12, lineHeight:1.6 }}>By placing your order you agree to our Terms of Service.</p>
             </div>
-            <Button type="submit" variant="accent" full size="lg" disabled={submitting} style={{ marginTop:20 }}>
-              {submitting ? 'Placing order…' : `Place order — $${total.toFixed(2)}`}
-            </Button>
-            <p style={{ fontSize:11.5, color:'#A39B8C', textAlign:'center', marginTop:12, lineHeight:1.6 }}>
-              By placing your order, you agree to our Terms of Service and Privacy Policy.
-            </p>
           </div>
         </div>
       </form>
-      <style>{`@media (max-width:900px) { .checkout-grid { grid-template-columns:1fr !important; gap:32px !important; } }`}</style>
+      <style>{`@media(max-width:900px){.checkout-grid{grid-template-columns:1fr!important;gap:32px!important;}}`}</style>
     </div>
   );
 }
@@ -1573,39 +1126,28 @@ function CheckoutPage({ onNavigate }) {
 /* ============================================================
    FOOTER
    ============================================================ */
-
 function Footer({ onNavigate }) {
   return (
     <footer style={{ background:'#1C1B19', color:'#C8C2B6', marginTop:'auto' }}>
       <div style={{ maxWidth:1320, margin:'0 auto', padding:'56px 24px 28px', display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1fr', gap:40 }} className="footer-grid">
         <div>
-          <div style={{ fontFamily:'Fraunces, serif', fontSize:24, fontWeight:700, color:'#FAF7F2', marginBottom:14 }}>
-            Atelier<span style={{ color:'#D9A05B' }}>Nova</span>
-          </div>
-          <p style={{ fontSize:13.5, lineHeight:1.8, maxWidth:280, color:'#9C958A' }}>
-            Thoughtfully designed furniture and decor, made to last and built around how you actually live.
-          </p>
+          <div style={{ fontFamily:'Fraunces,serif', fontSize:24, fontWeight:700, color:'#FAF7F2', marginBottom:14 }}>Atelier<span style={{ color:'#D9A05B' }}>Nova</span></div>
+          <p style={{ fontFamily:'Inter,sans-serif', fontSize:13.5, lineHeight:1.8, maxWidth:280, color:'#9C958A' }}>Thoughtfully designed furniture and decor, made to last and built around how you actually live.</p>
         </div>
-        {[
-          { title:'Shop', links:['New arrivals','Best sellers','Sale','All products'] },
-          { title:'Support', links:['Shipping & returns','Track an order','FAQs','Contact us'] },
-          { title:'Company', links:['Our story','Sustainability','Careers','Press'] },
-        ].map(({ title, links }) => (
+        {[['Shop',['New arrivals','Best sellers','Sale','All products']],['Support',['Shipping & returns','Track an order','FAQs','Contact us']],['Company',['Our story','Sustainability','Careers','Press']]].map(([title,links]) => (
           <div key={title}>
-            <div style={{ fontSize:13, fontWeight:700, color:'#FAF7F2', marginBottom:16, textTransform:'uppercase', letterSpacing:'0.06em' }}>{title}</div>
+            <div style={{ fontFamily:'Inter,sans-serif', fontSize:13, fontWeight:700, color:'#FAF7F2', marginBottom:16, textTransform:'uppercase', letterSpacing:'0.06em' }}>{title}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              {links.map((l) => (
-                <button key={l} onClick={() => onNavigate('products')} style={{ background:'none', border:'none', cursor:'pointer', textAlign:'left', fontSize:13.5, color:'#9C958A', padding:0 }}>{l}</button>
-              ))}
+              {links.map(l => <button key={l} onClick={() => onNavigate('products')} style={{ background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:'Inter,sans-serif', fontSize:13.5, color:'#9C958A', padding:0 }}>{l}</button>)}
             </div>
           </div>
         ))}
       </div>
       <div style={{ borderTop:'1px solid #34322F', padding:'20px 24px', maxWidth:1320, margin:'0 auto', display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
-        <span style={{ fontSize:12.5, color:'#7A746A' }}>© 2026 AtelierNova. All rights reserved.</span>
-        <span style={{ fontSize:12.5, color:'#7A746A' }}>Portfolio demo — all data is simulated</span>
+        <span style={{ fontFamily:'Inter,sans-serif', fontSize:12.5, color:'#7A746A' }}>© 2026 AtelierNova. All rights reserved.</span>
+        <span style={{ fontFamily:'Inter,sans-serif', fontSize:12.5, color:'#7A746A' }}>Portfolio demo — all data is simulated</span>
       </div>
-      <style>{`@media (max-width:800px) { .footer-grid { grid-template-columns:1fr 1fr !important; } }`}</style>
+      <style>{`@media(max-width:800px){.footer-grid{grid-template-columns:1fr 1fr!important;}}`}</style>
     </footer>
   );
 }
@@ -1613,7 +1155,6 @@ function Footer({ onNavigate }) {
 /* ============================================================
    ROOT APP
    ============================================================ */
-
 function App() {
   const [page, setPage] = useState('home');
   const [productId, setProductId] = useState(null);
@@ -1623,23 +1164,23 @@ function App() {
 
   const handleNavigate = (target, id) => {
     setPage(target);
-    if (target==='product') setProductId(id);
+    if(target==='product') setProductId(id);
     window.scrollTo({ top:0, behavior:'instant' });
   };
 
   return (
     <CartProvider>
-      <div style={{ background:'#FAF7F2', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#1C1B19' }}>
-        <Header onNavigate={handleNavigate} currentPage={page} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenCart={() => setCartOpen(true)}/>
+      <div style={{ fontFamily:'Inter,sans-serif', background:'#FAF7F2', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#1C1B19' }}>
+        <Header onNavigate={handleNavigate} currentPage={page} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenCart={() => setCartOpen(true)} />
         <main style={{ flex:1 }}>
-          {page==='home' && <HomePage onNavigate={handleNavigate} setSelectedCategory={setSelectedCategory}/>}
-          {page==='products' && <ProductsPage onNavigate={handleNavigate} searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}/>}
-          {page==='product' && <ProductDetailPage productId={productId} onNavigate={handleNavigate}/>}
-          {page==='checkout' && <CheckoutPage onNavigate={handleNavigate}/>}
+          {page==='home' && <HomePage onNavigate={handleNavigate} setSelectedCategory={setSelectedCategory} />}
+          {page==='products' && <ProductsPage onNavigate={handleNavigate} searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />}
+          {page==='product' && <ProductDetailPage productId={productId} onNavigate={handleNavigate} />}
+          {page==='checkout' && <CheckoutPage onNavigate={handleNavigate} />}
         </main>
-        <Footer onNavigate={handleNavigate}/>
-        <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} onNavigate={handleNavigate}/>
-        <ToastWrapper/>
+        <Footer onNavigate={handleNavigate} />
+        <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} onNavigate={handleNavigate} />
+        <ToastWrapper />
       </div>
     </CartProvider>
   );
@@ -1647,11 +1188,10 @@ function App() {
 
 function ToastWrapper() {
   const { toast } = useCart();
-  return <Toast toast={toast}/>;
+  return <Toast toast={toast} />;
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App/>);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
